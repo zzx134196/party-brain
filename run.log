@@ -1,0 +1,119 @@
+🚀 智慧党建助手 启动中...
+📦 启动后端 (端口8000)...
+INFO:     Started server process [15392]
+INFO:     Waiting for application startup.
+2026-04-01 17:36:12.915 | INFO     | app.main:startup:57 - 🚀 智慧党建助手 v1.0.0 启动中...
+2026-04-01 17:36:12.921 | INFO     | app.main:startup:65 - ✅ 数据库表已就绪
+2026-04-01 17:36:12.931 | INFO     | app.init_data:init_templates:30 - 模板表已有数据，跳过导入
+2026-04-01 17:36:12.940 | INFO     | app.core.llm:reinitialize:309 - LLM客户端已重新初始化: base_url=https://dashscope.aliyuncs.com/compatible-mode/v1, model=qwen3-8b
+2026-04-01 17:36:12.940 | INFO     | app.api.settings:load_llm_config_from_db:70 - ✅ 已从数据库加载LLM配置: ['llm_base_url', 'llm_api_key', 'llm_model', 'llm_max_tokens', 'llm_temperature', 'embedding_base_url', 'embedding_api_key', 'embedding_model']
+2026-04-01 17:36:12.940 | INFO     | app.main:startup:81 - ✅ 智慧党建助手 启动完成
+2026-04-01 17:36:12.940 | INFO     | app.main:startup:82 - 📖 API文档: http://0.0.0.0:8000/docs
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+🎨 启动前端 (端口3000)...
+
+> party-brain-frontend@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 260 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+
+✅ 启动完成！
+================================
+  前端界面: http://localhost:3000
+  API文档:  http://localhost:8000/docs
+  账号:     admin / admin123
+================================
+
+按 Ctrl+C 停止所有服务
+5:37:08 PM [vite] Internal server error: Failed to resolve import "./Admin/UserManual" from "src/pages/UserManualPage.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/yu22x/Desktop/智能体开发/政务/agent1/party-brain/frontend/src/pages/UserManualPage.jsx:5:23
+  20 |  import { Layout, Button, Typography } from "antd";
+  21 |  import { ArrowLeftOutlined } from "@ant-design/icons";
+  22 |  import UserManual from "./Admin/UserManual";
+     |                          ^
+  23 |  const { Header, Content } = Layout;
+  24 |  const { Title } = Typography;
+      at TransformPluginContext._formatError (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 7)
+      at async TransformPluginContext.transform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+5:37:08 PM [vite] Pre-transform error: Failed to resolve import "./Admin/UserManual" from "src/pages/UserManualPage.jsx". Does the file exist?
+5:37:45 PM [vite] Internal server error: Failed to resolve import "./Admin/UserManual" from "src/pages/UserManualPage.jsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/yu22x/Desktop/智能体开发/政务/agent1/party-brain/frontend/src/pages/UserManualPage.jsx:5:23
+  20 |  import { Layout, Button, Typography } from "antd";
+  21 |  import { ArrowLeftOutlined } from "@ant-design/icons";
+  22 |  import UserManual from "./Admin/UserManual";
+     |                          ^
+  23 |  const { Header, Content } = Layout;
+  24 |  const { Title } = Typography;
+      at TransformPluginContext._formatError (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 7)
+      at async TransformPluginContext.transform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///Users/yu22x/Desktop/%E6%99%BA%E8%83%BD%E4%BD%93%E5%BC%80%E5%8F%91/%E6%94%BF%E5%8A%A1/agent1/party-brain/frontend/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+5:39:05 PM [vite] hmr update /src/App.jsx
+5:39:16 PM [vite] hmr update /src/App.jsx
+5:39:29 PM [vite] hmr update /src/pages/Chat.jsx
+2026-04-01 17:39:55.033 | WARNING  | app.core.auth:decode_jwt_token:43 - JWT 验证失败: Signature has expired.
+INFO:     127.0.0.1:64874 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+2026-04-01 17:39:55.040 | WARNING  | app.core.auth:decode_jwt_token:43 - JWT 验证失败: Signature has expired.
+INFO:     127.0.0.1:64878 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65165 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65165 - "GET /openapi.json HTTP/1.1" 200 OK
+2026-04-01 17:41:57.032 | WARNING  | app.core.auth:decode_jwt_token:43 - JWT 验证失败: Not enough segments
+INFO:     127.0.0.1:65524 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+2026-04-01 17:41:57.048 | WARNING  | app.core.auth:decode_jwt_token:43 - JWT 验证失败: Not enough segments
+INFO:     127.0.0.1:65528 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49844 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:49850 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50094 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:50097 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63810 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63816 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63979 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:63981 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64183 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:64187 - "GET /api/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:65168 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65170 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65174 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65176 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65186 - "DELETE /api/chat/conversations/5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65188 - "DELETE /api/chat/conversations/4 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65194 - "DELETE /api/chat/conversations/3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65197 - "DELETE /api/chat/conversations/2 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65200 - "DELETE /api/chat/conversations/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65229 - "POST /api/chat/send/stream HTTP/1.1" 200 OK
+2026-04-01 18:39:25.797 | INFO     | app.core.agent:__init__:828 - WorkflowEngine 初始化完成（workflow 模式，无工具层）
+2026-04-01 18:39:25.801 | WARNING  | app.core.intent:classify_intent_stream:236 - 流式意图识别异常: '"intent"'
+2026-04-01 18:39:25.801 | INFO     | app.core.agent:run_stream:1103 - [Workflow-Stream] 意图: '你好' -> general_chat
+INFO:     127.0.0.1:65263 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+6:40:32 PM [vite] hmr update /src/pages/Chat.jsx
+INFO:     127.0.0.1:65526 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49330 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49332 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49346 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49348 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49364 - "POST /api/chat/send/stream HTTP/1.1" 200 OK
+2026-04-01 18:41:23.934 | WARNING  | app.core.intent:classify_intent_stream:236 - 流式意图识别异常: '"intent"'
+2026-04-01 18:41:23.934 | INFO     | app.core.agent:run_stream:1103 - [Workflow-Stream] 意图: '你好' -> general_chat
+INFO:     127.0.0.1:49409 - "GET /api/chat/conversations HTTP/1.1" 200 OK
+./start.sh: line 44: 15392 Killed: 9               python3.11 -m uvicorn app.main:app --port 8000  (wd: ~/Desktop/智能体开发/政务/agent1/party-brain/backend)
+./start.sh: line 44: 15483 Killed: 9               npm run dev  (wd: ~/Desktop/智能体开发/政务/agent1/party-brain/frontend)
