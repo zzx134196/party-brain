@@ -1,0 +1,44 @@
+# === 依赖 ===
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# === 构建产物 ===
+dist/
+build/
+*.egg-info/
+
+# === 环境配置（含敏感信息） ===
+.env
+.env.local
+.env.docker
+
+# === 数据库文件 ===
+*.db
+*.sqlite
+*.sqlite3
+*.db.lock
+
+# === 上传/导出/临时文件 ===
+uploads/
+exports/
+.tmp/
+*.log
+
+# === 系统文件 ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === IDE ===
+.idea/
+.vscode/
+*.code-workspace
+test_token.py
+*.jpg
+*.jpeg
+*.png

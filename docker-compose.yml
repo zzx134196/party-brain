@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # 前端服务（Nginx托管 + 反向代理）
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: party-brain-frontend
+    ports:
+      - "8001:80"
+    depends_on:
+      - backend
+    networks:
+      - party-brain-net
+    restart: unless-stopped
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: party-brain-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env.docker
+    environment:
+      - MILVUS_URI=http://192.168.1.100:19530
+      - MILVUS_COLLECTION=party_committee
+      - EMBEDDING_BASE_URL=http://192.168.1.100:40086/v1
+      - EMBEDDING_MODEL=bge-m3
+    volumes:
+      - backend_data:/app/data          # SQLite数据库 + 本地向量存储
+      - ./backend/uploads:/app/uploads   # 上传文件
+      - ./backend/exports:/app/exports   # 导出文件
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - party-brain-net
+    restart: unless-stopped
+
+networks:
+  party-brain-net:
+    driver: bridge
+
+volumes:
+  backend_data:

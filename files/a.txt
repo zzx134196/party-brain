@@ -1,0 +1,22 @@
+MATERIAL_COLLECTIONS: Final[list[dict[str, str]]] = [
+    {"office_key": "network_admin", "label": "网管处", "collection_name": "network_admin"},
+    {"office_key": "general_office", "label": "综合处", "collection_name": "general_office"},
+    {"office_key": "communications_office", "label": "传播处", "collection_name": "communications_office"},
+    {"office_key": "party_committee", "label": "机关党委", "collection_name": "party_committee"},
+    {"office_key": "online_review_office", "label": "网评处", "collection_name": "online_review_office"},
+    {"office_key": "information_office", "label": "信息处", "collection_name": "information_office"},
+    {"office_key": "cybersecurity_office", "label": "网安处", "collection_name": "cybersecurity_office"},
+    {"office_key": "evaluation_center", "label": "测评中心", "collection_name": "evaluation_center"},
+    {"office_key": "mindun_company", "label": "闽盾公司", "collection_name": "mindun_company"},
+    {"office_key": "emergency_office", "label": "应急处", "collection_name": "emergency_office"},
+    {"office_key": "emergency_center", "label": "应急中心", "collection_name": "emergency_center"},
+    {"office_key": "minqing_center", "label": "闽情中心", "collection_name": "minqing_center"},
+]
+
+
+collection_name定义
+端口是19530
+到时候是部署在本地的
+fulltext_search
+我们用的这个入口
+bm25搜索
