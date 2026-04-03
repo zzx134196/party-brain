@@ -10,10 +10,9 @@ dist/
 build/
 *.egg-info/
 
-# === 环境配置（含敏感信息） ===
-.env
+# === 环境配置 ===
+# 私有仓库，.env 纳入版本控制方便内网部署
 .env.local
-.env.docker
 
 # === 数据库文件 ===
 *.db
