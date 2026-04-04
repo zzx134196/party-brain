@@ -89,6 +89,80 @@ html, body, #root {
   margin: 0 6px 12px 6px;
 }
 
+/* ============ Ant Design 5 Chrome 83 兼容覆写 ============ */
+
+/* Ant Design Button 图标+文字间距（antd 用 flex gap，Chrome 83 不支持） */
+.no-flex-gap .ant-btn > span + .anticon,
+.no-flex-gap .ant-btn > .anticon + span,
+.no-flex-gap .ant-btn > span + span {
+  margin-left: 8px;
+}
+
+/* Ant Design Space 组件间距 */
+.no-flex-gap .ant-space-item + .ant-space-item {
+  margin-left: 8px;
+}
+.no-flex-gap .ant-space-vertical .ant-space-item + .ant-space-item {
+  margin-left: 0;
+  margin-top: 8px;
+}
+
+/* Ant Design Dropdown / Menu */
+.no-flex-gap .ant-dropdown-menu-item > span + span,
+.no-flex-gap .ant-dropdown-menu-item > .anticon + span {
+  margin-left: 8px;
+}
+
+/* Ant Design Form 项间距 */
+.no-flex-gap .ant-form-item + .ant-form-item {
+  margin-top: 16px;
+}
+
+/* Ant Design Upload 列表 */
+.no-flex-gap .ant-upload-list-item {
+  margin-top: 8px;
+}
+
+/* Ant Design Modal footer 按钮间距 */
+.no-flex-gap .ant-modal-footer .ant-btn + .ant-btn {
+  margin-left: 8px;
+}
+
+/* Ant Design Tag 间距 */
+.no-flex-gap .ant-tag + .ant-tag {
+  margin-left: 4px;
+}
+
+/* Ant Design Tabs */
+.no-flex-gap .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 24px;
+}
+
+/* Ant Design Collapse */
+.no-flex-gap .ant-collapse-item + .ant-collapse-item {
+  margin-top: 8px;
+}
+
+/* 确保 Ant Design Layout 在旧浏览器正常工作 */
+.ant-layout {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+}
+.ant-layout-content {
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+}
+
+/* Ant Design Upload 的点击区域修复 */
+.ant-upload {
+  display: inline-block;
+}
+.ant-upload input[type="file"] {
+  cursor: pointer;
+}
+
 /* 对话消息动画 */
 @-webkit-keyframes fadeIn {
   from { opacity: 0; -webkit-transform: translateY(8px); transform: translateY(8px); }
