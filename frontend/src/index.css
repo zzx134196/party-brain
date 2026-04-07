@@ -155,12 +155,41 @@ html, body, #root {
   flex: 1;
 }
 
-/* Ant Design Upload 的点击区域修复 */
+/* Ant Design Upload 的点击区域修复（Chrome 83 增强） */
 .ant-upload {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+}
+.ant-upload-wrapper {
   display: inline-block;
 }
 .ant-upload input[type="file"] {
   cursor: pointer;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 1;
+}
+/* 确保 Upload 按钮容器可点击 */
+.ant-upload .ant-btn {
+  position: relative;
+  z-index: 0;
+  pointer-events: auto;
+}
+/* Upload 按钮内 flex gap 修复不应影响点击 */
+.no-flex-gap .ant-upload,
+.no-flex-gap .ant-upload-wrapper {
+  display: inline-block;
+}
+
+/* CSS Grid gap fallback（Chrome 84 才支持标准 gap，83 需要 grid-gap） */
+.no-flex-gap [style*="display: grid"],
+.no-flex-gap [style*="display:grid"] {
+  grid-gap: 12px;
 }
 
 /* 对话消息动画 */
@@ -177,3 +206,4 @@ html, body, #root {
   -webkit-animation: fadeIn 0.3s ease-out;
   animation: fadeIn 0.3s ease-out;
 }
+

@@ -137,7 +137,7 @@ export default function ChatPage() {
 
   // 附件上传处理
   const handleAttachFile = async (e) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files && e.target.files[0]
     if (!file) return
     e.target.value = ''
     const ALLOWED = ['.pdf', '.docx', '.doc', '.txt', '.wps', '.md']
@@ -758,7 +758,7 @@ function WelcomeScreen({ onSend }) {
       </div>
 
       {/* 功能卡片 + 示例 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, textAlign: 'left' }}>
+      <div className="welcome-grid" style={{ textAlign: 'left' }}>
         {features.map((item, i) => (
           <div
             key={i}

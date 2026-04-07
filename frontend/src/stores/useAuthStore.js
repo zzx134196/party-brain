@@ -64,7 +64,7 @@ const useAuthStore = create((set, get) => ({
         // token 无效
         get().logout()
       }
-    } catch {
+    } catch (e) {
       // 网络错误时保留 token，等后端恢复后重试
       console.warn('获取用户信息失败，保留 token 等待重试')
     }
