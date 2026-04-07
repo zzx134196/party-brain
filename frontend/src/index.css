@@ -192,6 +192,54 @@ html, body, #root {
   grid-gap: 12px;
 }
 
+/* Ant Design Sider 在旧浏览器的兼容 */
+.ant-layout-sider {
+  -webkit-flex: 0 0 auto;
+  flex: 0 0 auto;
+}
+.ant-layout-sider-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden;
+}
+
+/* Ant Design Input / TextArea 在旧浏览器兼容 */
+.no-flex-gap .ant-input-affix-wrapper > input + .ant-input-suffix,
+.no-flex-gap .ant-input-affix-wrapper > .ant-input-prefix + input {
+  margin-left: 4px;
+}
+
+/* Ant Design Spin 在旧浏览器兼容 */
+.no-flex-gap .ant-spin-dot {
+  margin-right: 8px;
+}
+
+/* Ant Design Alert 在旧浏览器兼容 */
+.no-flex-gap .ant-alert-icon + .ant-alert-content {
+  margin-left: 8px;
+}
+
+/* Ant Design Message 在旧浏览器兼容 */
+.no-flex-gap .ant-message-custom-content > .anticon + span {
+  margin-left: 8px;
+}
+
+/* Ant Design Descriptions 在旧浏览器兼容 */
+.no-flex-gap .ant-descriptions-item-label {
+  margin-right: 4px;
+}
+
+/* 确保所有 flex 容器在旧浏览器展示 */
+.no-flex-gap .ant-card-head-title {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+}
+
 /* 对话消息动画 */
 @-webkit-keyframes fadeIn {
   from { opacity: 0; -webkit-transform: translateY(8px); transform: translateY(8px); }

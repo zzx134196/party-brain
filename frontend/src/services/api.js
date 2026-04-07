@@ -49,42 +49,93 @@ export const chatApi = {
   deleteConversation: (id) => api.delete(`/chat/conversations/${id}`),
   getMessages: (conversationId) => api.get(`/chat/conversations/${conversationId}/messages`),
   sendMessage: (data) => api.post('/chat/send', data),
-  // 流式请求需要特殊处理（支持 signal 取消）
-  sendMessageStream: async (data, onChunk, signal) => {
-    const token = localStorage.getItem('token')
-    const response = await fetch('/api/chat/send/stream', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-      signal,
-    })
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+  sendMessageStream: function (data, onChunk, signal) {
+    var token = localStorage.getItem('token')
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6))
-              onChunk(data)
-            } catch (e) { /* ignore */ }
-          }
+    function processSSEText(text, onChunk) {
+      var lines = text.split('\n')
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.indexOf('data: ') === 0) {
+          try {
+            var parsed = JSON.parse(line.slice(6))
+            onChunk(parsed)
+          } catch (e) { /* ignore */ }
         }
       }
-    } catch (e) {
-      if (e.name === 'AbortError') return // 用户主动停止
-      throw e
     }
+
+    if (typeof ReadableStream !== 'undefined' && typeof fetch !== 'undefined') {
+      return fetch('/api/chat/send/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(data),
+        signal: signal,
+      }).then(function (response) {
+        if (!response.body || typeof response.body.getReader !== 'function') {
+          return response.text().then(function (text) {
+            processSSEText(text, onChunk)
+          })
+        }
+        var reader = response.body.getReader()
+        var decoder = new TextDecoder()
+        var buffer = ''
+        function read() {
+          return reader.read().then(function (result) {
+            if (result.done) return
+            buffer += decoder.decode(result.value, { stream: true })
+            var lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+            for (var i = 0; i < lines.length; i++) {
+              if (lines[i].indexOf('data: ') === 0) {
+                try {
+                  var parsed = JSON.parse(lines[i].slice(6))
+                  onChunk(parsed)
+                } catch (e) { /* ignore */ }
+              }
+            }
+            return read()
+          })
+        }
+        return read()
+      }).catch(function (e) {
+        if (e && e.name === 'AbortError') return
+        throw e
+      })
+    }
+
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest()
+      var lastIndex = 0
+      xhr.open('POST', '/api/chat/send/stream', true)
+      xhr.setRequestHeader('Content-Type', 'application/json')
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+
+      if (signal) {
+        signal.addEventListener('abort', function () {
+          xhr.abort()
+        })
+      }
+
+      xhr.onprogress = function () {
+        var newText = xhr.responseText.substring(lastIndex)
+        lastIndex = xhr.responseText.length
+        processSSEText(newText, onChunk)
+      }
+
+      xhr.onload = function () {
+        var remaining = xhr.responseText.substring(lastIndex)
+        if (remaining) processSSEText(remaining, onChunk)
+        resolve()
+      }
+
+      xhr.onerror = function () { reject(new Error('网络请求失败')) }
+      xhr.onabort = function () { resolve() }
+      xhr.send(JSON.stringify(data))
+    })
   },
   // 上传聊天附件（提取文本）
   uploadAttachment: (file) => {

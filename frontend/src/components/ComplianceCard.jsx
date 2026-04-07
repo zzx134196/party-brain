@@ -62,11 +62,11 @@ export default function ComplianceCard({ data }) {
         <div style={{ marginBottom: 12 }}>
           <Text strong style={{ fontSize: 13 }}>逐项核查：</Text>
           <div style={{ marginTop: 8, border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr', padding: '6px 12px', background: '#fafafa', fontWeight: 500, fontSize: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr', padding: '6px 12px', background: '#fafafa', fontWeight: 500, fontSize: 12, gridGap: 0 }}>
               <span>审核条件</span><span>结果</span><span>说明</span>
             </div>
             {check.checks.map((item, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr', padding: '8px 12px', borderTop: '1px solid #f0f0f0', fontSize: 12 }}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr', padding: '8px 12px', borderTop: '1px solid #f0f0f0', fontSize: 12, gridGap: 0 }}>
                 <span>{item.condition}</span>
                 <span>
                   <Tag color={RESULT_COLORS[item.result] || 'default'} style={{ fontSize: 11 }}>

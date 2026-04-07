@@ -6,9 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="renderer" content="webkit" />
     <title>智慧党建助手</title>
+    <style>
+      /* 防止白屏：在 JS 加载前提供基础样式 */
+      #root { min-height: 100vh; }
+      .app-loading {
+        display: -webkit-box; display: -ms-flexbox; display: flex;
+        -webkit-box-align: center; -ms-flex-align: center; align-items: center;
+        -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center;
+        height: 100vh; font-family: sans-serif; color: #999; font-size: 14px;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="app-loading">正在加载...</div></div>
+    <script>
+      // AbortController polyfill（Chrome 66+ 支持，但作为安全保障）
+      if (typeof AbortController === 'undefined') {
+        window.AbortController = function () {
+          this.signal = { aborted: false, addEventListener: function () {} };
+          this.abort = function () { this.signal.aborted = true; };
+        };
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
