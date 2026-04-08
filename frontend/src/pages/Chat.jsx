@@ -531,7 +531,7 @@ export default function ChatPage() {
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
           }}
         >
-          <Space align="center">
+          <div className="flex-gap-8" style={{ display: 'flex', alignItems: 'center' }}>
             <Button
               type="text"
               icon={siderCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -544,13 +544,13 @@ export default function ChatPage() {
               </div>
               <Title level={4} style={{ margin: 0, color: '#1a1a1a', fontSize: 16, fontWeight: 600 }}>智慧党建助手</Title>
             </div>
-          </Space>
+          </div>
           <Dropdown menu={userMenu} placement="bottomRight">
-            <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.2s' }}>
+            <div className="flex-gap-8" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '4px 8px', borderRadius: 8 }}>
               <Avatar size={28} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #1677ff, #4096ff)' }} />
               <Text style={{ fontSize: 13 }}>{user?.real_name || user?.username}</Text>
               {user?.role === 'admin' && <Tag color="blue" style={{ margin: 0, fontSize: 11, lineHeight: '18px', height: 20 }}>管理员</Tag>}
-            </Space>
+            </div>
           </Dropdown>
         </Header>
 
@@ -665,7 +665,7 @@ export default function ChatPage() {
 
       {/* 文件差异对比弹窗 */}
       <Modal
-        title={<Space><DiffOutlined style={{ color: '#722ed1' }} />文件差异对比</Space>}
+        title={<div className="flex-gap-8" style={{ display: 'flex', alignItems: 'center' }}><DiffOutlined style={{ color: '#722ed1' }} /><span>文件差异对比</span></div>}
         open={diffModalOpen}
         onCancel={() => { if (!diffLoading) setDiffModalOpen(false) }}
         onOk={handleDiffCompare}
@@ -675,8 +675,8 @@ export default function ChatPage() {
         okButtonProps={{ disabled: !diffFile1 || !diffFile2 }}
         destroyOnClose
       >
-        <div className="flex-col-gap-16" style={{ display: 'flex', flexDirection: 'column', padding: '12px 0' }}>
-          <div>
+        <div style={{ padding: '12px 0' }}>
+          <div style={{ marginBottom: 16 }}>
             <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件1</Text>
             <Upload
               beforeUpload={(file) => { setDiffFile1(file); return false }}
@@ -688,7 +688,7 @@ export default function ChatPage() {
               <Button icon={<UploadOutlined />}>选择文件</Button>
             </Upload>
           </div>
-          <div>
+          <div style={{ marginBottom: 16 }}>
             <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件2</Text>
             <Upload
               beforeUpload={(file) => { setDiffFile2(file); return false }}
