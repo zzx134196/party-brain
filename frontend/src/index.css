@@ -173,11 +173,42 @@ html, body, #root {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+}
+/* 含有 Sider 时横向排列 */
+.ant-layout-has-sider,
+.ant-layout:has(.ant-layout-sider) {
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: row;
+  flex-direction: row;
+}
+/* 最外层 Layout（含 Sider）强制横向 —— 兼容不支持 :has() 的浏览器 */
+#root > .ant-layout {
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: row;
+  flex-direction: row;
+}
+/* 内层 Layout（Header + Content 区域）保持纵向 */
+.ant-layout .ant-layout {
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -webkit-box-flex: 1;
+  -ms-flex: 1;
+  flex: 1;
+  min-width: 0;
 }
 .ant-layout-content {
   -webkit-box-flex: 1;
   -ms-flex: 1;
   flex: 1;
+  min-height: 0;
 }
 .ant-layout-header {
   display: -webkit-box;
@@ -186,6 +217,12 @@ html, body, #root {
   -webkit-box-align: center;
   -ms-flex-align: center;
   align-items: center;
+  -webkit-box-pack: justify;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  -webkit-flex-shrink: 0;
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
 }
 
 /* CSS Grid gap fallback（Chrome 84 才支持标准 gap，83 需要 grid-gap） */
