@@ -453,6 +453,7 @@ export default function ChatPage() {
         width={260}
         collapsedWidth={0}
         collapsed={siderCollapsed}
+        trigger={null}
         style={{ background: 'linear-gradient(180deg, #fff 0%, #fafbfc 100%)', borderRight: '1px solid #eee', overflow: 'auto' }}
       >
         <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>

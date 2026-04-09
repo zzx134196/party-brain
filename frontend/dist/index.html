@@ -8,8 +8,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="renderer" content="webkit" />
     <title>智慧党建助手</title>
+    <script>
+      // Chrome 83 Polyfills — 必须在所有 module 之前执行
+      if (typeof Object.hasOwn !== 'function') {
+        Object.hasOwn = function(o, p) { return Object.prototype.hasOwnProperty.call(o, p); };
+      }
+      if (typeof globalThis === 'undefined') { window.globalThis = window; }
+      if (typeof globalThis.structuredClone !== 'function') {
+        globalThis.structuredClone = function(v) { return JSON.parse(JSON.stringify(v)); };
+      }
+      if (typeof String.prototype.replaceAll !== 'function') {
+        String.prototype.replaceAll = function(s, r) {
+          if (s instanceof RegExp) { if (!s.global) throw new TypeError('non-global RegExp'); return this.replace(s, r); }
+          return this.split(s).join(r);
+        };
+      }
+      if (typeof Array.prototype.at !== 'function') {
+        Array.prototype.at = function(i) { var n = Math.trunc(i)||0; if(n<0) n+=this.length; return (n<0||n>=this.length)?undefined:this[n]; };
+      }
+      if (typeof String.prototype.at !== 'function') {
+        String.prototype.at = function(i) { var n = Math.trunc(i)||0; if(n<0) n+=this.length; return (n<0||n>=this.length)?undefined:this.charAt(n); };
+      }
+      if (typeof Array.prototype.findLast !== 'function') {
+        Array.prototype.findLast = function(fn, t) { for(var i=this.length-1;i>=0;i--) if(fn.call(t,this[i],i,this)) return this[i]; };
+      }
+      if (typeof Array.prototype.findLastIndex !== 'function') {
+        Array.prototype.findLastIndex = function(fn, t) { for(var i=this.length-1;i>=0;i--) if(fn.call(t,this[i],i,this)) return i; return -1; };
+      }
+      if (typeof AbortController === 'undefined') {
+        window.AbortController = function() { this.signal = {aborted:false, addEventListener:function(){}}; this.abort = function() { this.signal.aborted=true; }; };
+      }
+    </script>
     <style>
-      /* 防止白屏：在 JS 加载前提供基础样式 */
       #root { min-height: 100vh; }
       .app-loading {
         display: -webkit-box; display: -ms-flexbox; display: flex;
@@ -18,24 +48,15 @@
         height: 100vh; font-family: sans-serif; color: #999; font-size: 14px;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-MgyWxK2n.js"></script>
+    <script type="module" crossorigin src="/assets/index-BsKhLVV9.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-C1NJ9-fT.css">
     <script type="module">import.meta.url;import("_").catch(()=>1);(async function*(){})().next();if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
     <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
   </head>
   <body>
     <div id="root"><div class="app-loading">正在加载...</div></div>
-    <script>
-      // AbortController polyfill（Chrome 66+ 支持，但作为安全保障）
-      if (typeof AbortController === 'undefined') {
-        window.AbortController = function () {
-          this.signal = { aborted: false, addEventListener: function () {} };
-          this.abort = function () { this.signal.aborted = true; };
-        };
-      }
-    </script>
     <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
-    <script nomodule crossorigin id="vite-legacy-polyfill" src="/assets/polyfills-legacy-ra3EjS6V.js"></script>
-    <script nomodule crossorigin id="vite-legacy-entry" data-src="/assets/index-legacy-Fn6WtRLX.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+    <script nomodule crossorigin id="vite-legacy-polyfill" src="/assets/polyfills-legacy-CIn6lMq3.js"></script>
+    <script nomodule crossorigin id="vite-legacy-entry" data-src="/assets/index-legacy-CNBD9lTw.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
   </body>
 </html>
