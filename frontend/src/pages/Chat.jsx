@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Layout, Input, Button, Typography, Space, Avatar, Spin, Dropdown, Tag, Upload, Modal, message as antMessage,
+  Layout, Input, Button, Typography, Space, Avatar, Spin, Dropdown, Tag, message as antMessage,
 } from 'antd'
 import {
   SendOutlined, PlusOutlined, UserOutlined, RobotOutlined, FileTextOutlined,
@@ -664,48 +664,117 @@ export default function ChatPage() {
         </Content>
       </Layout>
 
-      {/* 文件差异对比弹窗 */}
-      <Modal
-        title={<div className="flex-gap-8" style={{ display: 'flex', alignItems: 'center' }}><DiffOutlined style={{ color: '#722ed1' }} /><span>文件差异对比</span></div>}
-        open={diffModalOpen}
-        onCancel={() => { if (!diffLoading) setDiffModalOpen(false) }}
-        onOk={handleDiffCompare}
-        okText="开始对比"
-        cancelText="取消"
-        confirmLoading={diffLoading}
-        okButtonProps={{ disabled: !diffFile1 || !diffFile2 }}
-        destroyOnClose
-      >
-        <div style={{ padding: '12px 0' }}>
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件1</Text>
-            <Upload
-              beforeUpload={(file) => { setDiffFile1(file); return false }}
-              onRemove={() => setDiffFile1(null)}
-              fileList={diffFile1 ? [diffFile1] : []}
-              accept=".pdf,.docx,.doc,.txt"
-              maxCount={1}
-            >
-              <Button icon={<UploadOutlined />}>选择文件</Button>
-            </Upload>
+      {/* 文件差异对比弹窗 — 使用原生实现，避免 Ant Design Modal 在 Chrome 83 的兼容问题 */}
+      {diffModalOpen && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.45)' }}
+            onClick={() => { if (!diffLoading) setDiffModalOpen(false) }}
+          />
+          <div style={{
+            position: 'relative', background: '#fff', borderRadius: 8, padding: 0,
+            width: 480, maxWidth: '90vw', boxShadow: '0 6px 30px rgba(0,0,0,0.2)',
+          }}>
+            <div style={{
+              padding: '16px 24px', borderBottom: '1px solid #f0f0f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div className="flex-gap-8" style={{ display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 600 }}>
+                <DiffOutlined style={{ color: '#722ed1' }} />
+                <span>文件差异对比</span>
+              </div>
+              <CloseOutlined
+                style={{ cursor: 'pointer', color: '#999', fontSize: 14 }}
+                onClick={() => { if (!diffLoading) setDiffModalOpen(false) }}
+              />
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件1</Text>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <label style={{
+                    display: 'inline-block', padding: '4px 15px', border: '1px solid #d9d9d9',
+                    borderRadius: 6, cursor: 'pointer', background: '#fff', fontSize: 14,
+                    transition: 'border-color 0.3s',
+                  }}>
+                    <UploadOutlined style={{ marginRight: 8 }} />选择文件
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.doc,.txt"
+                      style={{ display: 'none' }}
+                      onChange={function(e) { var f = e.target.files && e.target.files[0]; if (f) setDiffFile1(f); e.target.value = '' }}
+                    />
+                  </label>
+                  {diffFile1 && (
+                    <span style={{ marginLeft: 10, fontSize: 13, color: '#52c41a' }}>
+                      {diffFile1.name}
+                      <CloseOutlined
+                        style={{ marginLeft: 6, cursor: 'pointer', color: '#999', fontSize: 12 }}
+                        onClick={() => setDiffFile1(null)}
+                      />
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件2</Text>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <label style={{
+                    display: 'inline-block', padding: '4px 15px', border: '1px solid #d9d9d9',
+                    borderRadius: 6, cursor: 'pointer', background: '#fff', fontSize: 14,
+                    transition: 'border-color 0.3s',
+                  }}>
+                    <UploadOutlined style={{ marginRight: 8 }} />选择文件
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.doc,.txt"
+                      style={{ display: 'none' }}
+                      onChange={function(e) { var f = e.target.files && e.target.files[0]; if (f) setDiffFile2(f); e.target.value = '' }}
+                    />
+                  </label>
+                  {diffFile2 && (
+                    <span style={{ marginLeft: 10, fontSize: 13, color: '#52c41a' }}>
+                      {diffFile2.name}
+                      <CloseOutlined
+                        style={{ marginLeft: 6, cursor: 'pointer', color: '#999', fontSize: 12 }}
+                        onClick={() => setDiffFile2(null)}
+                      />
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                支持 PDF、Word（.docx/.doc）、TXT 格式
+              </Text>
+            </div>
+            <div style={{
+              padding: '10px 24px 16px', borderTop: '1px solid #f0f0f0',
+              display: 'flex', justifyContent: 'flex-end',
+            }}>
+              <Button
+                style={{ marginRight: 8 }}
+                onClick={() => { if (!diffLoading) setDiffModalOpen(false) }}
+                disabled={diffLoading}
+              >
+                取消
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleDiffCompare}
+                loading={diffLoading}
+                disabled={!diffFile1 || !diffFile2}
+              >
+                开始对比
+              </Button>
+            </div>
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>文件2</Text>
-            <Upload
-              beforeUpload={(file) => { setDiffFile2(file); return false }}
-              onRemove={() => setDiffFile2(null)}
-              fileList={diffFile2 ? [diffFile2] : []}
-              accept=".pdf,.docx,.doc,.txt"
-              maxCount={1}
-            >
-              <Button icon={<UploadOutlined />}>选择文件</Button>
-            </Upload>
-          </div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            支持 PDF、Word（.docx/.doc）、TXT 格式
-          </Text>
         </div>
-      </Modal>
+      )}
     </Layout>
   )
 }
