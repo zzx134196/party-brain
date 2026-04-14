@@ -454,15 +454,15 @@ export default function ChatPage() {
         collapsedWidth={0}
         collapsed={siderCollapsed}
         trigger={null}
-        style={{ background: 'linear-gradient(180deg, #fff 0%, #fafbfc 100%)', borderRight: '1px solid #eee', overflow: 'auto' }}
+        className="app-sidebar"
+        style={{ overflow: 'auto' }}
       >
-        <div style={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}>
+        <div className="sidebar-divider-bottom" style={{ padding: '14px 16px' }}>
           <Button
-            type="primary"
             icon={<PlusOutlined />}
             block
             onClick={handleNewChat}
-            style={{ borderRadius: 8, height: 40, fontWeight: 500, background: 'linear-gradient(135deg, #1677ff 0%, #4096ff 100%)', border: 'none', boxShadow: '0 2px 8px rgba(22,119,255,0.3)' }}
+            style={{ borderRadius: 8, height: 40, fontWeight: 500, background: 'rgba(255, 255, 255, 0.15)', color: '#fff', border: 'none' }}
           >
             新对话
           </Button>
@@ -471,8 +471,8 @@ export default function ChatPage() {
         {/* 对话历史 */}
         {conversations.length > 0 && (
           <>
-            <div style={{ padding: '14px 16px 6px', borderTop: '1px solid #f0f0f0', marginTop: 4 }}>
-              <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>历史对话</Text>
+            <div className="sidebar-divider-top" style={{ padding: '14px 16px 6px', marginTop: 4 }}>
+              <Text style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>历史对话</Text>
             </div>
             <div style={{ padding: '0 8px', maxHeight: 180, overflow: 'auto' }}>
               {conversations.slice(0, 15).map((conv) => (
@@ -481,12 +481,12 @@ export default function ChatPage() {
                   style={{
                     display: 'flex', alignItems: 'center', marginBottom: 2,
                     borderRadius: 4,
-                    background: conv.id === currentConversationId ? '#e6f4ff' : undefined,
                   }}
                 >
                   <Button
                     type="text"
                     size="small"
+                    className={`sidebar-menu-btn ${conv.id === currentConversationId ? 'active' : ''}`}
                     style={{
                       flex: 1, textAlign: 'left', height: 32, fontSize: 12,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -509,11 +509,11 @@ export default function ChatPage() {
         )}
 
         {/* 工具 */}
-        <div style={{ padding: '14px 16px 6px', borderTop: '1px solid #f0f0f0', marginTop: 4 }}>
-          <Text type="secondary" style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>工具</Text>
+        <div className="sidebar-divider-top" style={{ padding: '14px 16px 6px', marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>工具</Text>
         </div>
         <div style={{ padding: '0 8px' }}>
-          <Button type="text" icon={<DiffOutlined />} block style={{ textAlign: 'left', height: 36 }}
+          <Button type="text" icon={<DiffOutlined />} block className="sidebar-menu-btn" style={{ textAlign: 'left', height: 36 }}
             onClick={() => { setDiffFile1(null); setDiffFile2(null); setDiffModalOpen(true) }}>
             文件差异对比
           </Button>
