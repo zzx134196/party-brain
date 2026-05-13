@@ -460,7 +460,6 @@ def _extract_actions(structured_list: list) -> Optional[list]:
         if item_type == "document":
             actions.extend([
                 {"type": "download_word", "label": "下载Word"},
-                {"type": "download_pdf", "label": "下载PDF"},
                 {"type": "modify", "label": "继续修改"},
             ])
         elif item_type == "template_outline":

@@ -48,7 +48,7 @@ AGENT_SYSTEM_PROMPT = """你是「智慧党建助手」，一个智能AI助手�
 2. **check_compliance** — 合规条件判断（逐条对照，附带置信度和引用）
 3. **list_templates** — 查看可用文档模板
 4. **generate_document** — 生成公文（工作计划、活动方案、纪要、报告等）
-5. **export_file** — 导出Word/PDF/Excel
+5. **export_file** — 导出Word/Excel
 6. **compare_texts** — 对比两段文本差异
 
 ## 工作原则
@@ -177,13 +177,13 @@ AGENT_TOOLS = [
         "type": "function",
         "function": {
             "name": "export_file",
-            "description": "将内容导出为文件并返回下载标记。支持Word、PDF、Excel格式。调用后前端会自动触发下载。",
+            "description": "将内容导出为文件并返回下载标记。支持Word、Excel格式。调用后前端会自动触发下载。",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "format": {
                         "type": "string",
-                        "enum": ["word", "pdf", "excel"],
+                        "enum": ["word", "excel"],
                         "description": "导出格式"
                     },
                     "title": {
@@ -192,7 +192,7 @@ AGENT_TOOLS = [
                     },
                     "content": {
                         "type": "string",
-                        "description": "文档内容（word/pdf时使用）"
+                        "description": "文档内容（word时使用）"
                     },
                     "columns": {
                         "type": "array",
@@ -1219,8 +1219,6 @@ class WorkflowEngine:
                 links = []
                 if item.get("word_link"):
                     links.append(f"[📄 下载Word文件]({item['word_link']})")
-                if item.get("pdf_link"):
-                    links.append(f"[📋 下载PDF文件]({item['pdf_link']})")
                 if links:
                     reply_text += "\n\n" + "　　".join(links)
                 reply_text += "\n\n如需修改，请直接告诉我修改要求。"

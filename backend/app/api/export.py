@@ -134,14 +134,13 @@ def _build_pdf_doc(title: str, content: str):
 
 
 def auto_save_document(title: str, content: str) -> dict:
-    """自动将文档内容保存为 Word 和 PDF 文件，返回下载链接信息。
+    """自动将文档内容保存为 Word 文件，返回下载链接信息。
 
     供 Agent Workflow 调用，生成文档后自动保存文件并在回复中嵌入下载链接。
 
     Returns:
         {"word_link": "/api/export/download/xxx.docx",
-         "pdf_link": "/api/export/download/xxx.pdf",
-         "word_name": "xxx.docx", "pdf_name": "xxx.pdf"}
+         "word_name": "xxx.docx"}
     """
     short_id = uuid.uuid4().hex[:8]
     import re as _re
@@ -149,7 +148,6 @@ def auto_save_document(title: str, content: str) -> dict:
     date_str = datetime.now().strftime('%Y%m%d')
 
     word_name = f"{safe_title}_{date_str}_{short_id}.docx"
-    pdf_name = f"{safe_title}_{date_str}_{short_id}.pdf"
 
     results = {}
 
@@ -164,18 +162,6 @@ def auto_save_document(title: str, content: str) -> dict:
         logger.info(f"自动保存Word: {word_path}")
     except Exception as e:
         logger.error(f"自动保存Word失败: {e}")
-
-    # 保存 PDF
-    try:
-        buf = _build_pdf_doc(title, content)
-        pdf_path = os.path.join(EXPORT_DIR, pdf_name)
-        with open(pdf_path, "wb") as f:
-            f.write(buf.read())
-        results["pdf_link"] = f"/api/export/download/{pdf_name}"
-        results["pdf_name"] = pdf_name
-        logger.info(f"自动保存PDF: {pdf_path}")
-    except Exception as e:
-        logger.error(f"自动保存PDF失败: {e}")
 
     return results
 
