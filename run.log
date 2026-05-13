@@ -44,3 +44,9 @@ INFO:     127.0.0.1:56236 - "GET /api/auth/me HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56237 - "GET /api/chat/conversations HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56239 - "GET /api/chat/conversations HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56312 - "GET /api/auth/me HTTP/1.1" 200 OK
+./start.sh: line 44: 57784 Hangup: 1               npm run dev  (wd: ~/Desktop/智能体开发/政务/agent1/party-brain/frontend)
+正在停止服务...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [57471]

@@ -339,14 +339,6 @@ export default function ChatPage() {
         })
         filename = `${docTitle}.docx`
 
-      } else if (action.type === 'download_pdf' && message.data?.content) {
-        antMessage.loading({ content: '正在生成 PDF 文件...', key: 'export', duration: 0 })
-        response = await fetch('/api/export/pdf', {
-          method: 'POST', headers,
-          body: JSON.stringify({ title: docTitle, content: message.data.content }),
-        })
-        filename = `${docTitle}.pdf`
-
       } else if (action.type === 'export_report' && message.data?.result) {
         // 导出合规判断书 — 将结构化结果转为文本后导出 Word
         antMessage.loading({ content: '正在生成判断书...', key: 'export', duration: 0 })
@@ -882,11 +874,54 @@ function WelcomeScreen({ onSend }) {
   )
 }
 
+function formatMessageContent(content) {
+  if (!content || typeof content !== 'string') return content || ''
+  var text = content
+
+  text = text.replace(/```json\s*([\s\S]*?)```/g, function(match, jsonStr) {
+    try {
+      var obj = JSON.parse(jsonStr.trim())
+      return '```json\n' + JSON.stringify(obj, null, 2) + '\n```'
+    } catch (e) {
+      return match
+    }
+  })
+
+  text = text.replace(/(?:^|\n)(\{[\s\S]*?\})(?:\n|$)/g, function(match, jsonStr) {
+    if (jsonStr.length < 50) return match
+    try {
+      var obj = JSON.parse(jsonStr.trim())
+      return '\n```json\n' + JSON.stringify(obj, null, 2) + '\n```\n'
+    } catch (e) {
+      return match
+    }
+  })
+
+  text = text.replace(/(?:^|\n)(\[[\s\S]*?\])(?:\n|$)/g, function(match, jsonStr) {
+    if (jsonStr.length < 50) return match
+    try {
+      var obj = JSON.parse(jsonStr.trim())
+      return '\n```json\n' + JSON.stringify(obj, null, 2) + '\n```\n'
+    } catch (e) {
+      return match
+    }
+  })
+
+  text = text.replace(/["']?type["']?\s*[:：]\s*["']?template_outline["']?/gi, function() {
+    return ''
+  })
+
+  return text
+}
+
 /* 消息气泡 */
 function MessageBubble({ message, onAction, exporting }) {
   const isUser = message.role === 'user'
   const [thinkingExpanded, setThinkingExpanded] = React.useState(true)
   const isStreaming = !message.content && !!(message.thinking || message.thinkingContent)
+  const displayContent = React.useMemo(function() {
+    return formatMessageContent(message.content)
+  }, [message.content])
 
   return (
     <div
@@ -998,25 +1033,27 @@ function MessageBubble({ message, onAction, exporting }) {
         )}
 
         {isUser ? message.content : (
-          <div style={{ whiteSpace: 'normal' }}>
+          <div style={{ whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'break-word' }}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({children}) => <h3 style={{margin: '12px 0 6px', fontSize: 16, fontWeight: 600}}>{children}</h3>,
                 h2: ({children}) => <h4 style={{margin: '10px 0 4px', fontSize: 15, fontWeight: 600}}>{children}</h4>,
                 h3: ({children}) => <h5 style={{margin: '8px 0 4px', fontSize: 14, fontWeight: 600}}>{children}</h5>,
-                p: ({children}) => <p style={{margin: '4px 0', lineHeight: 1.7}}>{children}</p>,
+                p: ({children}) => <p style={{margin: '4px 0', lineHeight: 1.7, overflowWrap: 'break-word', wordBreak: 'break-word'}}>{children}</p>,
                 ul: ({children}) => <ul style={{margin: '4px 0', paddingLeft: 20}}>{children}</ul>,
                 ol: ({children}) => <ol style={{margin: '4px 0', paddingLeft: 20}}>{children}</ol>,
                 li: ({children}) => <li style={{margin: '2px 0'}}>{children}</li>,
                 strong: ({children}) => <strong style={{fontWeight: 600}}>{children}</strong>,
-                table: ({children}) => <table style={{borderCollapse: 'collapse', margin: '8px 0', fontSize: 12, width: '100%'}}>{children}</table>,
-                th: ({children}) => <th style={{border: '1px solid #e8e8e8', padding: '6px 10px', background: '#fafafa', fontWeight: 600, textAlign: 'left'}}>{children}</th>,
+                table: ({children}) => <div style={{overflowX: 'auto', maxWidth: '100%', margin: '8px 0'}}><table style={{borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 300}}>{children}</table></div>,
+                th: ({children}) => <th style={{border: '1px solid #e8e8e8', padding: '6px 10px', background: '#fafafa', fontWeight: 600, textAlign: 'left', whiteSpace: 'nowrap'}}>{children}</th>,
                 td: ({children}) => <td style={{border: '1px solid #e8e8e8', padding: '6px 10px'}}>{children}</td>,
                 blockquote: ({children}) => <blockquote style={{borderLeft: '3px solid #1677ff', margin: '8px 0', paddingLeft: 12, color: '#666'}}>{children}</blockquote>,
-                code: ({inline, children}) => inline
-                  ? <code style={{background: '#f5f5f5', padding: '1px 4px', borderRadius: 3, fontSize: '0.9em'}}>{children}</code>
-                  : <pre style={{background: '#f5f5f5', padding: 8, borderRadius: 4, overflow: 'auto', fontSize: 12}}><code>{children}</code></pre>,
+                pre: ({children}) => <pre style={{background: '#f5f5f5', padding: 10, borderRadius: 6, overflowX: 'auto', maxWidth: '100%', fontSize: 12, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word'}}>{children}</pre>,
+                code: ({inline, className, children}) => {
+                  if (inline) return <code style={{background: '#f5f5f5', padding: '1px 4px', borderRadius: 3, fontSize: '0.9em', wordBreak: 'break-all'}}>{children}</code>
+                  return <code style={{fontFamily: 'Consolas, Monaco, "Courier New", monospace'}}>{children}</code>
+                },
                 a: ({href, children}) => {
                   const isDownload = href && href.startsWith('/api/export/download/')
                   return <a
@@ -1038,7 +1075,7 @@ function MessageBubble({ message, onAction, exporting }) {
                 },
               }}
             >
-              {message.content || ''}
+              {displayContent}
             </ReactMarkdown>
           </div>
         )}
@@ -1112,8 +1149,6 @@ function MessageBubble({ message, onAction, exporting }) {
           <div className="flex-gap-8" style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap' }}>
             <Button size="small" type="primary" icon={<DownloadOutlined />} style={{ borderRadius: 12 }}
               loading={exporting} onClick={() => onAction({ type: 'download_word' }, message)}>下载Word</Button>
-            <Button size="small" icon={<DownloadOutlined />} style={{ borderRadius: 12 }}
-              loading={exporting} onClick={() => onAction({ type: 'download_pdf' }, message)}>下载PDF</Button>
             <Button size="small" icon={<EditOutlined />} style={{ borderRadius: 12 }}
               onClick={() => onAction({ type: 'modify' }, message)}>继续修改</Button>
           </div>
