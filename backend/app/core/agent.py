@@ -434,9 +434,9 @@ class AgentEngine:
                 )
 
                 logger.info(f"Agent(stream)调用工具: {tool_name}({tool_args})")
+                yield AgentStreamEvent(type="thinking_content", data={"text": f"正在调用工具 {tool_name}...\n"})
                 result = await self.tools.execute(tool_name, tool_args, db=db)
 
-                # 通知前端：工具结果
                 yield AgentStreamEvent(
                     type="tool_result",
                     data={
@@ -446,6 +446,9 @@ class AgentEngine:
                         "structured": result.data,
                     }
                 )
+                yield AgentStreamEvent(type="thinking_content", data={
+                    "text": f"工具 {tool_name} 执行{'成功' if result.success else '失败'}：{result.summary[:100]}\n"
+                })
 
                 self._append_tool_call_messages(messages, response, tool_name, tool_args, result)
                 continue
@@ -1006,6 +1009,7 @@ class WorkflowEngine:
         ctx_structured = [tr.data for tr in wf_result.tool_results if tr.data]
         fixed_reply = self._try_fixed_reply(ctx_structured, wf_result)
         if fixed_reply:
+            yield AgentStreamEvent(type="thinking_content", data={"text": "已获取结构化数据，格式化输出。\n"})
             for c in _split_to_chunks(fixed_reply):
                 yield AgentStreamEvent(type="content", data={"text": c})
             yield AgentStreamEvent(type="done", data={})
@@ -1018,14 +1022,11 @@ class WorkflowEngine:
         summary_messages = self._build_summary_messages(user_message, tool_data_text, conversation_history)
         try:
             full_reply = ""
-            thinking_buf = ""
             async for piece in self.llm.chat_stream_with_thinking(summary_messages):
                 if piece["type"] == "thinking":
-                    thinking_buf += piece["text"]
+                    yield AgentStreamEvent(type="thinking_content", data={"text": piece["text"]})
                 else:
                     full_reply += piece["text"]
-            if thinking_buf:
-                yield AgentStreamEvent(type="thinking_content", data={"text": thinking_buf})
             cleaned = self._clean_reply(full_reply)
             for c in _split_to_chunks(cleaned, chunk_size=40):
                 yield AgentStreamEvent(type="content", data={"text": c})
@@ -1086,10 +1087,11 @@ class WorkflowEngine:
         intent_result = None
         kw_result = classify_intent_by_keywords(user_message, conversation_history)
         if kw_result["confidence"] >= 0.85:
-            # 关键词高置信度命中，无需 LLM
             intent_result = kw_result
+            yield AgentStreamEvent(type="thinking_content", data={
+                "text": f"识别到意图：{intent_result['intent']}（关键词匹配，置信度{kw_result['confidence']:.0%}）\n"
+            })
         else:
-            # 低置信度 → 流式 LLM 意图识别
             async for chunk in classify_intent_stream(user_message, conversation_history):
                 if chunk["type"] == "thinking":
                     yield AgentStreamEvent(type="thinking_content", data={"text": chunk["text"]})
@@ -1164,6 +1166,9 @@ class WorkflowEngine:
 
         # Step 6: 需要用户补充信息
         if wf_result.needs_user_input:
+            yield AgentStreamEvent(type="thinking_content", data={
+                "text": f"需要补充信息才能继续处理。\n"
+            })
             for c in _split_to_chunks(wf_result.needs_user_input):
                 yield AgentStreamEvent(type="content", data={"text": c})
             yield AgentStreamEvent(type="done", data={})
@@ -1173,6 +1178,9 @@ class WorkflowEngine:
         structured_data = [tr.data for tr in wf_result.tool_results if tr.data]
         fixed_reply = self._try_fixed_reply(structured_data, wf_result)
         if fixed_reply:
+            yield AgentStreamEvent(type="thinking_content", data={
+                "text": f"已获取到结构化数据，直接格式化输出。\n"
+            })
             for c in _split_to_chunks(fixed_reply):
                 yield AgentStreamEvent(type="content", data={"text": c})
             yield AgentStreamEvent(type="done", data={})
