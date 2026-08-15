@@ -99,6 +99,7 @@ async def analyze_diff_with_llm(
     file2_name: str,
     text1: str,
     text2: str,
+    on_thinking=None,
 ) -> Dict[str, Any]:
     """使用LLM分析文件差异"""
     # 先计算基础差异
@@ -134,7 +135,7 @@ async def analyze_diff_with_llm(
             )},
         ]
         result = await asyncio.wait_for(
-            llm_service.chat_json(messages),
+            llm_service.chat_json(messages, on_thinking=on_thinking),
             timeout=DIFF_LLM_TIMEOUT,
         )
         if "error" not in result:

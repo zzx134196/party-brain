@@ -1,4 +1,5 @@
 """文件差异对比API"""
+import asyncio
 import json
 import os
 import shutil
@@ -155,20 +156,41 @@ async def compare_files_stream(
                 "args": {"file1": file1.filename, "file2": file2.filename},
             })
 
-            # 4. 执行差异分析
-            result = await analyze_diff_with_llm(
-                file1_name=file1.filename,
-                file2_name=file2.filename,
-                text1=text1,
-                text2=text2,
+            # 4. 执行差异分析（AI 思考内容实时流式推送）
+            thinking_queue = asyncio.Queue()
+
+            async def _on_diff_thinking(text: str):
+                await thinking_queue.put(text)
+
+            diff_task = asyncio.create_task(
+                analyze_diff_with_llm(
+                    file1_name=file1.filename,
+                    file2_name=file2.filename,
+                    text1=text1,
+                    text2=text2,
+                    on_thinking=_on_diff_thinking,
+                )
             )
+
+            while not diff_task.done():
+                try:
+                    text = await asyncio.wait_for(thinking_queue.get(), timeout=0.2)
+                    yield _sse({"type": "thinking_content", "text": text})
+                except asyncio.TimeoutError:
+                    continue
+
+            while not thinking_queue.empty():
+                text = thinking_queue.get_nowait()
+                yield _sse({"type": "thinking_content", "text": text})
+
+            result = await diff_task
             result["file1"] = file1.filename
             result["file2"] = file2.filename
 
             total = result.get("total_diffs", 0)
             similarity = result.get("similarity", 0)
             if result.get("fallback"):
-                yield _sse({"type": "thinking_content", "text": "⚠️ AI语义差异分析暂不可用，已使用基础文本差异规则输出清单，建议人工复核。\n"})
+                yield _sse({"type": "thinking_content", "text": (result.get("message") or "⚠️ AI语义差异分析暂不可用，已使用基础文本差异规则输出清单，建议人工复核。") + "\n"})
             yield _sse({"type": "thinking_content", "text": f"对比完成，共发现 {total} 处差异，相似度 {similarity}%。\n"})
 
             yield _sse({

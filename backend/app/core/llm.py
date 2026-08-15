@@ -195,9 +195,19 @@ class LLMService:
         self,
         messages: List[Dict[str, str]],
         temperature: float = 0.1,
+        on_thinking=None,
     ) -> dict:
         """JSON格式输出的对话（低温度确保格式稳定）"""
-        result = await self.chat(messages, temperature=temperature)
+        if on_thinking:
+            content_buf = ""
+            async for piece in self.chat_stream_with_thinking(messages, temperature=temperature):
+                if piece["type"] == "thinking":
+                    await on_thinking(piece["text"])
+                else:
+                    content_buf += piece["text"]
+            result = content_buf
+        else:
+            result = await self.chat(messages, temperature=temperature)
         # 尝试提取JSON
         try:
             # 处理可能被markdown包裹的JSON
