@@ -195,6 +195,7 @@ export const diffApi = {
     var controller = null
     var receivedEvent = false
     var receivedDone = false
+    var receivedResultData = null
 
     function cleanup() {
       if (timeoutId) clearTimeout(timeoutId)
@@ -229,6 +230,17 @@ export const diffApi = {
             receivedEvent = true
             if (parsed && parsed.done) {
               receivedDone = true
+              if (parsed.data) {
+                receivedResultData = parsed.data
+              }
+            }
+            if (
+              parsed &&
+              parsed.type === 'tool_result' &&
+              parsed.structured &&
+              parsed.structured.type === 'diff_report'
+            ) {
+              receivedResultData = parsed.structured
             }
             onChunk(parsed)
           } catch (e) { /* ignore */ }
@@ -285,7 +297,12 @@ export const diffApi = {
       }).then(function () {
         cleanup()
         if (!receivedDone) {
-          throw new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志')
+          if (receivedResultData) {
+            // 后端已通过 tool_result 返回完整结果，只是 done 事件可能被代理截断
+            onChunk({ type: 'done', data: receivedResultData })
+          } else {
+            throw new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志')
+          }
         }
       }).catch(handleFetchError)
     }
@@ -311,7 +328,10 @@ export const diffApi = {
         var remaining = xhr.responseText.substring(lastIndex)
         if (remaining) processSSEText(remaining, onChunk)
         cleanup()
-        if (receivedDone) {
+        if (receivedDone || receivedResultData) {
+          if (!receivedDone && receivedResultData) {
+            onChunk({ type: 'done', data: receivedResultData })
+          }
           resolve()
         } else {
           reject(new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志'))
