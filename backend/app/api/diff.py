@@ -127,33 +127,42 @@ async def compare_files_stream(
             raise HTTPException(status_code=400, detail=f"不支持的文件格式: {f.filename}，仅支持PDF/Word/TXT")
 
     tmp_dir = tempfile.mkdtemp()
+    path1 = os.path.join(tmp_dir, file1.filename)
+    path2 = os.path.join(tmp_dir, file2.filename)
+    file1_name = file1.filename
+    file2_name = file2.filename
+
+    # 在返回流式响应前先把上传文件落盘，避免 StreamingResponse 生成器里
+    # 读取 UploadFile 时请求体已被 FastAPI 关闭导致流中断。
+    try:
+        with open(path1, "wb") as f:
+            f.write(await file1.read())
+        with open(path2, "wb") as f:
+            f.write(await file2.read())
+    except Exception as e:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise HTTPException(status_code=400, detail=f"文件保存失败: {str(e)}")
 
     async def generate():
         try:
             # 1. 解析文件1
             yield _sse({"type": "thinking_content", "text": "正在解析文件1...\n"})
-            path1 = os.path.join(tmp_dir, file1.filename)
-            with open(path1, "wb") as f:
-                f.write(await file1.read())
             text1 = parse_uploaded_file(path1)
             if not text1.strip():
-                raise HTTPException(status_code=400, detail=f"文件1 ({file1.filename}) 解析结果为空")
+                raise HTTPException(status_code=400, detail=f"文件1 ({file1_name}) 解析结果为空")
             yield _sse({"type": "thinking_content", "text": f"文件1解析完成（{len(text1)}字）。\n正在解析文件2...\n"})
 
             # 2. 解析文件2
-            path2 = os.path.join(tmp_dir, file2.filename)
-            with open(path2, "wb") as f:
-                f.write(await file2.read())
             text2 = parse_uploaded_file(path2)
             if not text2.strip():
-                raise HTTPException(status_code=400, detail=f"文件2 ({file2.filename}) 解析结果为空")
+                raise HTTPException(status_code=400, detail=f"文件2 ({file2_name}) 解析结果为空")
             yield _sse({"type": "thinking_content", "text": f"文件2解析完成（{len(text2)}字）。\n正在计算文本差异...\n"})
 
             # 3. 通知前端正在执行对比工具
             yield _sse({
                 "type": "tool_calling",
                 "tool": "file_diff",
-                "args": {"file1": file1.filename, "file2": file2.filename},
+                "args": {"file1": file1_name, "file2": file2_name},
             })
 
             # 4. 执行差异分析（AI 思考内容实时流式推送）
@@ -164,8 +173,8 @@ async def compare_files_stream(
 
             diff_task = asyncio.create_task(
                 analyze_diff_with_llm(
-                    file1_name=file1.filename,
-                    file2_name=file2.filename,
+                    file1_name=file1_name,
+                    file2_name=file2_name,
                     text1=text1,
                     text2=text2,
                     on_thinking=_on_diff_thinking,
@@ -184,8 +193,8 @@ async def compare_files_stream(
                 yield _sse({"type": "thinking_content", "text": text})
 
             result = await diff_task
-            result["file1"] = file1.filename
-            result["file2"] = file2.filename
+            result["file1"] = file1_name
+            result["file2"] = file2_name
 
             total = result.get("total_diffs", 0)
             similarity = result.get("similarity", 0)

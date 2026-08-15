@@ -194,6 +194,7 @@ export const diffApi = {
     var timeoutId = null
     var controller = null
     var receivedEvent = false
+    var receivedDone = false
 
     function cleanup() {
       if (timeoutId) clearTimeout(timeoutId)
@@ -226,6 +227,9 @@ export const diffApi = {
           try {
             var parsed = JSON.parse(line.slice(6))
             receivedEvent = true
+            if (parsed && parsed.done) {
+              receivedDone = true
+            }
             onChunk(parsed)
           } catch (e) { /* ignore */ }
         }
@@ -280,8 +284,8 @@ export const diffApi = {
         return read()
       }).then(function () {
         cleanup()
-        if (!receivedEvent) {
-          throw new Error('未收到文件对比处理结果，请确认后端已更新（需要 /api/diff/compare/stream 接口）并重启服务')
+        if (!receivedDone) {
+          throw new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志')
         }
       }).catch(handleFetchError)
     }
@@ -307,10 +311,10 @@ export const diffApi = {
         var remaining = xhr.responseText.substring(lastIndex)
         if (remaining) processSSEText(remaining, onChunk)
         cleanup()
-        if (receivedEvent) {
+        if (receivedDone) {
           resolve()
         } else {
-          reject(new Error('未收到文件对比处理结果，请确认后端已更新（需要 /api/diff/compare/stream 接口）并重启服务'))
+          reject(new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志'))
         }
       }
       xhr.onerror = function () { reject(new Error('网络请求失败')) }
