@@ -13,7 +13,7 @@ from app.models.database import get_db
 from app.models.user import User
 from app.models.policy import PolicyDocument, PolicyChunk, QueryLog
 from app.core.auth import get_current_user, require_admin
-from app.core.search import async_search_policy_chunks
+from app.core.search import async_search_policy_chunks_with_status
 
 router = APIRouter(prefix="/api/policy", tags=["政策知识库"])
 
@@ -395,11 +395,12 @@ async def search_policy(
     current_user: User = Depends(get_current_user),
 ):
     """检索知识库"""
-    results = await async_search_policy_chunks(req.query, top_k=req.top_k)
+    results, status = await async_search_policy_chunks_with_status(req.query, top_k=req.top_k)
     return {
         "query": req.query,
         "count": len(results),
         "results": results,
+        "status": status,
     }
 
 

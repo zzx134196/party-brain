@@ -1250,8 +1250,26 @@ class WorkflowEngine:
             if item_type == "policy_search":
                 clauses = item.get("clauses", [])
                 if not clauses:
+                    kb_status = item.get("kb_status") or {}
+                    if kb_status.get("error"):
+                        return (
+                            f"⚠️ 政策知识库暂时无法使用：{kb_status['error'][:150]}。\n\n"
+                            "未能检索到知识库依据，请稍后重试；"
+                            "如多次失败，请联系管理员检查 Embedding / 向量知识库服务。"
+                        )
                     return ""  # 空结果不截断，交给 LLM 回答（summary prompt 会标注来源）
                 return ""  # 有检索结果时交给 LLM 基于原文总结
+            if item_type == "compliance_result" and item.get("error") == "no_clauses":
+                kb_status = item.get("kb_status") or {}
+                if kb_status.get("error"):
+                    return (
+                        f"⚠️ 政策知识库调用失败：{kb_status['error'][:150]}。\n\n"
+                        "无法提供政策依据进行合规判断，请稍后重试或联系管理员检查知识库服务。"
+                    )
+                return (
+                    "⚠️ 未检索到相关政策条款，无法进行合规判断。\n\n"
+                    "请确认政策知识库已上传并解析相关政策文件后重试。"
+                )
         return ""  # 其他类型交给 LLM 总结
 
     @staticmethod

@@ -140,7 +140,7 @@ async def analyze_diff_with_llm(
     added = sum(1 for d in line_diffs if d['type'] == '新增')
     deleted = sum(1 for d in line_diffs if d['type'] == '删除')
 
-    return {
+    fallback_result = {
         "total_diffs": len(line_diffs),
         "diffs": [
             {
@@ -156,4 +156,10 @@ async def analyze_diff_with_llm(
         ],
         "summary": {"modified": modified, "added": added, "deleted": deleted},
         "similarity": round(similarity * 100, 1),
+        "fallback": True,
+        "message": (
+            "⚠️ AI语义差异分析暂不可用，已使用基础文本差异规则输出清单；"
+            "部分差异说明可能不够精确，建议人工复核。"
+        ),
     }
+    return fallback_result

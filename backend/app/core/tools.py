@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from app.core.agent import ToolResult, ToolRegistry
 from app.core.llm import llm_service
-from app.core.search import async_search_policy_chunks
+from app.core.search import async_search_policy_chunks_with_status
 from app.core.rag import answer_policy_question, check_compliance as rag_check_compliance, preview_clauses
 from app.core.template_gen import generate_outline, generate_full_document, modify_document
 from app.core.diff_engine import analyze_diff_with_llm, compute_similarity
@@ -22,13 +22,36 @@ from app.config import settings
 
 async def handle_search_policy(query: str, top_k: int = 5, **kwargs) -> ToolResult:
     """检索政策知识库"""
-    clauses = await async_search_policy_chunks(query, top_k=top_k)
+    clauses, kb_status = await async_search_policy_chunks_with_status(query, top_k=top_k)
 
     if not clauses:
+        if kb_status.get("error"):
+            summary = (
+                f"政策知识库调用失败：{kb_status['error'][:200]}。"
+                "未能获取知识库依据，请稍后重试，或联系管理员检查知识库服务。"
+            )
+            return ToolResult(
+                success=False,
+                summary=summary,
+                data={
+                    "type": "policy_search",
+                    "clauses": [],
+                    "count": 0,
+                    "sources": [],
+                    "kb_status": kb_status,
+                    "error": summary,
+                }
+            )
         return ToolResult(
             success=True,
             summary="未检索到相关政策条款，知识库可能为空或未匹配到内容",
-            data={"type": "policy_search", "clauses": [], "count": 0}
+            data={
+                "type": "policy_search",
+                "clauses": [],
+                "count": 0,
+                "sources": [],
+                "kb_status": kb_status,
+            }
         )
 
     _log_query("policy_qa", query, f"检索到{len(clauses)}条条款")
@@ -42,14 +65,29 @@ async def handle_search_policy(query: str, top_k: int = 5, **kwargs) -> ToolResu
             seen.add(src)
             sources.append(src)
 
+    if kb_status.get("used_fallback"):
+        if kb_status.get("error"):
+            summary = (
+                f"远程政策知识库连接失败，已使用本地缓存知识库检索到"
+                f"{len(clauses)}条相关政策条款（请以引用来源为准）"
+            )
+        else:
+            summary = (
+                f"主知识库未命中，已使用本地缓存知识库检索到"
+                f"{len(clauses)}条相关政策条款（请以引用来源为准）"
+            )
+    else:
+        summary = f"检索到{len(clauses)}条相关政策条款"
+
     return ToolResult(
         success=True,
-        summary=f"检索到{len(clauses)}条相关政策条款",
+        summary=summary,
         data={
             "type": "policy_search",
             "clauses": clauses,
             "count": len(clauses),
             "sources": sources,
+            "kb_status": kb_status,
         }
     )
 
@@ -60,9 +98,31 @@ async def handle_check_compliance(person_info: str, requirement: str, **kwargs) 
     """合规条件判断"""
     # 1. 检索相关条款
     search_query = f"{person_info} {requirement}"
-    clauses = await async_search_policy_chunks(search_query, top_k=8)
+    clauses, kb_status = await async_search_policy_chunks_with_status(search_query, top_k=8)
 
-    # 2. 条款预览
+    # 2. 未检索到条款时直接返回失败，禁止无依据进行合规判断
+    if not clauses:
+        if kb_status.get("error"):
+            summary = (
+                f"政策知识库调用失败：{kb_status['error'][:200]}，"
+                "无法提供政策依据。请检查知识库服务后重试。"
+            )
+        else:
+            summary = (
+                "未检索到相关政策条款，无法进行合规判断。"
+                "请确认政策知识库已上传并解析相关政策文件。"
+            )
+        return ToolResult(
+            success=False,
+            summary=summary,
+            data={
+                "type": "compliance_result",
+                "error": "no_clauses",
+                "kb_status": kb_status,
+            }
+        )
+
+    # 3. 条款预览
     clause_preview = {}
     if clauses:
         try:
@@ -70,7 +130,7 @@ async def handle_check_compliance(person_info: str, requirement: str, **kwargs) 
         except Exception as e:
             logger.warning(f"条款预览失败: {e}")
 
-    # 3. 执行判断
+    # 4. 执行判断
     try:
         check_result = await rag_check_compliance(
             person_info=person_info,
@@ -90,9 +150,16 @@ async def handle_check_compliance(person_info: str, requirement: str, **kwargs) 
 
     _log_query("compliance_check", f"{person_info} | {requirement}", f"{overall}, 置信度{int(confidence*100)}%")
 
+    used_fallback_note = ""
+    if kb_status.get("used_fallback"):
+        used_fallback_note = "（远程知识库连接失败，已使用本地缓存知识库）"
+
     return ToolResult(
         success=True,
-        summary=f"合规判断完成，结论：{overall}，置信度{int(confidence * 100)}%",
+        summary=(
+            f"合规判断完成，结论：{overall}，置信度{int(confidence * 100)}%"
+            f"{used_fallback_note}"
+        ),
         data={
             "type": "compliance_result",
             "result": {
@@ -100,7 +167,8 @@ async def handle_check_compliance(person_info: str, requirement: str, **kwargs) 
                 "check_result": check_result,
                 "confidence": confidence,
                 "needs_human_review": confidence < 0.8,
-            }
+            },
+            "kb_status": kb_status,
         }
     )
 

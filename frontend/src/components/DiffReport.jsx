@@ -36,6 +36,13 @@ export default function DiffReport({ data }) {
         </Descriptions.Item>
       </Descriptions>
 
+      {/* AI 分析降级提示 */}
+      {report.fallback && (
+        <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 6, fontSize: 12, color: '#ad6800', lineHeight: 1.7 }}>
+          {report.message || '⚠️ AI语义差异分析暂不可用，已使用基础文本差异规则输出清单，建议人工复核。'}
+        </div>
+      )}
+
       {/* 差异汇总 */}
       {(summary.modified > 0 || summary.added > 0 || summary.deleted > 0) && (
         <div className="flex-gap-8" style={{ marginBottom: 12, display: 'flex' }}>

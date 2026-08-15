@@ -143,9 +143,10 @@ def classify_intent_by_keywords(user_input: str, conversation_history: Optional[
         # 法规文件关键词
         "GB", "国标", "要求", "依据", "哪些", "如何", "什么条件",
         "是否可以", "允许", "禁止", "不得", "应当", "必须",
+        "解读", "条款", "咨询", "合规依据", "政策依据", "文件依据",
     ]
     if any(kw in text for kw in policy_keywords):
-        return {"intent": "policy_qa", "confidence": 0.8, "keywords": []}
+        return {"intent": "policy_qa", "confidence": 0.9, "keywords": []}
 
     # 6. 兜底 — 通用对话（低置信度，让 LLM 二次判断）
     return {"intent": "general_chat", "confidence": 0.4, "keywords": []}

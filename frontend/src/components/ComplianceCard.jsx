@@ -31,6 +31,16 @@ export default function ComplianceCard({ data }) {
       title={<Space><SafetyCertificateOutlined style={{ color: '#1677ff' }} />合规判断结果</Space>}
       style={{ marginTop: 8, borderRadius: 8 }}
     >
+      {/* 知识库降级提示 */}
+      {data.kb_status?.used_fallback && (
+        <Alert
+          type="warning"
+          showIcon
+          message={data.kb_status?.error ? '远程政策知识库连接失败，已使用本地缓存知识库进行判断，请以引用依据为准。' : '主知识库未命中，已使用本地缓存知识库进行判断，请以引用依据为准。'}
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
       {/* 条款预览 */}
       {preview.relevant_clauses && preview.relevant_clauses.length > 0 && (
         <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f6f8fa', borderRadius: 6, fontSize: 12 }}>

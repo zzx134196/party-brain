@@ -274,6 +274,9 @@ export default function ChatPage() {
       clearChat()
       addMessage({ role: 'user', content: `请对比文件差异：\n文件1：${diffFile1.name}\n文件2：${diffFile2.name}`, created_at: new Date().toISOString() })
       const result = await diffApi.compareFiles(diffFile1, diffFile2)
+      if (!result || typeof result.total_diffs !== 'number') {
+        throw new Error('对比服务返回结果异常，缺少差异数据')
+      }
       addMessage({
         role: 'assistant',
         content: result.conclusion || '文件差异分析完成，请查看下方报告。',
@@ -282,7 +285,18 @@ export default function ChatPage() {
       })
       setDiffModalOpen(false)
     } catch (err) {
-      antMessage.error('文件对比失败：' + (err.response?.data?.detail || err.message))
+      const detail = err.response?.data?.detail || err.message || '未知错误'
+      antMessage.error('文件对比失败：' + detail)
+      // 在对话中输出明确的失败提示语，便于现场定位问题
+      addMessage({
+        role: 'assistant',
+        content:
+          '⚠️ 文件差异对比失败\n\n' +
+          '失败原因：' + detail + '\n\n' +
+          '建议您稍后重试；若多次失败，请联系管理员检查文件解析服务或AI模型服务是否正常。',
+        data: { type: 'diff_error', error: detail },
+        created_at: new Date().toISOString(),
+      })
     } finally {
       setDiffLoading(false)
     }
@@ -1102,6 +1116,11 @@ function MessageBubble({ message, onAction, exporting }) {
             <div className="flex-gap-4" style={{ fontSize: 11, color: '#52c41a', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center' }}>
               <span>📄</span><span>参考文档（{message.data.sources.length} 个）</span>
             </div>
+            {message.data.kb_status?.used_fallback && (
+              <div style={{ marginBottom: 6, padding: '6px 8px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 6, fontSize: 11, color: '#ad6800' }}>
+                ⚠️ {message.data.kb_status.error ? '远程政策知识库连接失败' : '主知识库未命中'}，当前展示的是本地缓存知识库检索结果，请以引用来源为准。
+              </div>
+            )}
             {message.data.sources.map((src, i) => (
               <div key={i} className="flex-gap-4" style={{ fontSize: 11, color: '#555', padding: '2px 0', display: 'flex', alignItems: 'flex-start' }}>
                 <span style={{ color: '#52c41a', flexShrink: 0 }}>›</span>
@@ -1119,6 +1138,19 @@ function MessageBubble({ message, onAction, exporting }) {
         {/* 文件差异报告（功能四） */}
         {message.data?.type === 'diff_report' && (
           <DiffReport data={message.data} />
+        )}
+
+        {/* 文件差异对比失败提示 */}
+        {message.data?.type === 'diff_error' && (
+          <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 8, fontSize: 13, color: '#cf1322', lineHeight: 1.7 }}>
+            <strong>⚠️ 文件差异对比失败</strong>
+            <div style={{ marginTop: 4, color: '#666' }}>
+              失败原因：{message.data.error || '未知错误'}
+            </div>
+            <div style={{ marginTop: 4, color: '#8c8c8c', fontSize: 12 }}>
+              请稍后重试；若多次失败，请联系管理员检查文件解析服务或AI模型服务是否正常。
+            </div>
+          </div>
         )}
 
         {/* 文档生成时参考的知识库来源（template_outline / document） */}

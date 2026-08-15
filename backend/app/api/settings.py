@@ -1,4 +1,5 @@
 """系统设置API路由 - LLM配置管理（持久化到数据库）"""
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -118,6 +119,11 @@ class MilvusConfig(BaseModel):
     host: Optional[str] = None
     port: Optional[int] = None
     collection: str
+
+
+class MilvusTestRequest(BaseModel):
+    uri: Optional[str] = None
+    collection: Optional[str] = None
 
 
 def mask_api_key(key: str) -> str:
@@ -288,6 +294,76 @@ async def update_milvus_config(
         "effective_uri": settings.effective_milvus_uri,
         "mode": settings.milvus_mode,
     }
+
+
+@router.post("/milvus/test")
+async def test_milvus_connection(
+    req: MilvusTestRequest = None,
+    current_user: User = Depends(get_current_user),
+):
+    """测试Milvus知识库连接（用于现场确认知识库是否可用）"""
+    from app.core.milvus_store import create_vector_store
+
+    uri = (req.uri if req and req.uri else settings.effective_milvus_uri or "").strip()
+    collection = (req.collection if req and req.collection else settings.MILVUS_COLLECTION or "").strip()
+    mode = "remote" if uri.startswith(("http://", "https://")) else "local"
+
+    if not uri:
+        return {"status": "disconnected", "message": "未配置 Milvus 地址", "uri": uri, "collection": collection, "mode": mode}
+
+    try:
+        store = await asyncio.wait_for(
+            asyncio.to_thread(create_vector_store, uri),
+            timeout=8,
+        )
+        exists = await asyncio.wait_for(
+            store.ensure_collection(collection, dimension=1024),
+            timeout=8,
+        )
+        if not exists:
+            return {
+                "status": "disconnected",
+                "message": f"连接成功，但集合 {collection} 不存在，请检查集合名称或联系总系统创建。",
+                "uri": uri,
+                "collection": collection,
+                "mode": mode,
+            }
+
+        # 再做一次检索验证，确认集合可正常查询
+        try:
+            await asyncio.wait_for(
+                store.vector_search(
+                    query_vectors=[[0.0] * 1024],
+                    collection_name=collection,
+                    output_fields=["text"],
+                    limit=1,
+                ),
+                timeout=8,
+            )
+            return {
+                "status": "connected",
+                "message": f"连接成功，集合 {collection} 存在且检索可用。",
+                "uri": uri,
+                "collection": collection,
+                "mode": mode,
+            }
+        except Exception as search_err:
+            return {
+                "status": "connected",
+                "message": f"集合存在，但检索测试失败（可能向量维度不一致）：{str(search_err)[:200]}",
+                "uri": uri,
+                "collection": collection,
+                "mode": mode,
+            }
+    except Exception as e:
+        logger.warning(f"Milvus连接测试失败: {e}")
+        return {
+            "status": "disconnected",
+            "message": f"Milvus连接失败：{str(e)[:200]}",
+            "uri": uri,
+            "collection": collection,
+            "mode": mode,
+        }
 
 
 class EmbeddingTestRequest(BaseModel):

@@ -96,6 +96,18 @@ async def check_compliance(
     retrieved_clauses: List[Dict],
 ) -> Dict:
     """合规判断"""
+    if not retrieved_clauses:
+        return {
+            "person_name": "",
+            "requirement": requirement,
+            "overall_result": "无法判断",
+            "confidence": 0.0,
+            "checks": [],
+            "missing_info": ["未检索到相关政策条款，缺少判断依据"],
+            "suggestions": ["请补充政策知识库内容后重新判断"],
+            "references": [],
+        }
+
     clauses_text = format_clauses(retrieved_clauses)
 
     messages = [
