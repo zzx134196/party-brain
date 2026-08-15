@@ -1,4 +1,5 @@
 """文件差异对比引擎"""
+import asyncio
 import difflib
 from typing import Dict, Any, List
 
@@ -35,6 +36,10 @@ DIFF_ANALYSIS_PROMPT = """你是一个文档差异分析助手。以下是两份
     "deleted": 删除数
   }}
 }}"""
+
+
+# AI 语义分析超时时间（秒）。超时后自动降级为基础差异规则，避免前端长时间无响应。
+DIFF_LLM_TIMEOUT = 100
 
 
 def compute_text_diff(text1: str, text2: str) -> List[str]:
@@ -128,10 +133,15 @@ async def analyze_diff_with_llm(
                 diff_text=diff_text,
             )},
         ]
-        result = await llm_service.chat_json(messages)
+        result = await asyncio.wait_for(
+            llm_service.chat_json(messages),
+            timeout=DIFF_LLM_TIMEOUT,
+        )
         if "error" not in result:
             result["similarity"] = round(similarity * 100, 1)
             return result
+    except asyncio.TimeoutError:
+        logger.warning(f"LLM差异分析超时（>{DIFF_LLM_TIMEOUT}s），使用基础差异规则")
     except Exception as e:
         logger.warning(f"LLM差异分析失败: {e}")
 
@@ -158,7 +168,7 @@ async def analyze_diff_with_llm(
         "similarity": round(similarity * 100, 1),
         "fallback": True,
         "message": (
-            "⚠️ AI语义差异分析暂不可用，已使用基础文本差异规则输出清单；"
+            "⚠️ AI语义差异分析超时或暂不可用，已使用基础文本差异规则输出清单；"
             "部分差异说明可能不够精确，建议人工复核。"
         ),
     }

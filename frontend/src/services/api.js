@@ -182,13 +182,40 @@ export const diffApi = {
     const formData = new FormData()
     formData.append('file1', file1)
     formData.append('file2', file2)
-    return api.post('/diff/compare', formData, { timeout: 120000 })
+    return api.post('/diff/compare', formData, { timeout: 300000 })
   },
   compareFilesStream: function (file1, file2, onChunk, signal) {
     var token = localStorage.getItem('token')
     var formData = new FormData()
     formData.append('file1', file1)
     formData.append('file2', file2)
+    var TIMEOUT_MS = 5 * 60 * 1000  // 5分钟，避免大文件/慢模型被过早中断
+    var timedOut = false
+    var timeoutId = null
+    var controller = null
+
+    function cleanup() {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (signal) signal.removeEventListener('abort', onExternalAbort)
+    }
+
+    function onExternalAbort() {
+      if (controller) controller.abort()
+      if (typeof xhr !== 'undefined' && xhr) xhr.abort()
+    }
+
+    function handleFetchError(e) {
+      cleanup()
+      if (e && e.name === 'AbortError') {
+        if (timedOut) {
+          var err = new Error('文件对比处理超时，请稍后重试；若仍超时，请检查文件大小或联系管理员。')
+          err.name = 'TimeoutError'
+          throw err
+        }
+        return
+      }
+      throw e
+    }
 
     function processSSEText(text, onChunk) {
       var lines = text.split('\n')
@@ -204,11 +231,24 @@ export const diffApi = {
     }
 
     if (typeof ReadableStream !== 'undefined' && typeof fetch !== 'undefined') {
+      controller = new AbortController()
+      if (signal) {
+        if (signal.aborted) {
+          controller.abort()
+        } else {
+          signal.addEventListener('abort', onExternalAbort)
+        }
+      }
+      timeoutId = setTimeout(function () {
+        timedOut = true
+        controller.abort()
+      }, TIMEOUT_MS)
+
       return fetch('/api/diff/compare/stream', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token },
         body: formData,
-        signal: signal,
+        signal: controller.signal,
       }).then(function (response) {
         if (!response.body || typeof response.body.getReader !== 'function') {
           return response.text().then(function (text) {
@@ -236,10 +276,9 @@ export const diffApi = {
           })
         }
         return read()
-      }).catch(function (e) {
-        if (e && e.name === 'AbortError') return
-        throw e
-      })
+      }).then(function () {
+        cleanup()
+      }).catch(handleFetchError)
     }
 
     return new Promise(function (resolve, reject) {
@@ -248,8 +287,12 @@ export const diffApi = {
       xhr.open('POST', '/api/diff/compare/stream', true)
       xhr.setRequestHeader('Authorization', 'Bearer ' + token)
       if (signal) {
-        signal.addEventListener('abort', function () { xhr.abort() })
+        signal.addEventListener('abort', onExternalAbort)
       }
+      timeoutId = setTimeout(function () {
+        timedOut = true
+        xhr.abort()
+      }, TIMEOUT_MS)
       xhr.onprogress = function () {
         var newText = xhr.responseText.substring(lastIndex)
         lastIndex = xhr.responseText.length
@@ -261,7 +304,16 @@ export const diffApi = {
         resolve()
       }
       xhr.onerror = function () { reject(new Error('网络请求失败')) }
-      xhr.onabort = function () { resolve() }
+      xhr.onabort = function () {
+        cleanup()
+        if (timedOut) {
+          var err = new Error('文件对比处理超时，请稍后重试；若仍超时，请检查文件大小或联系管理员。')
+          err.name = 'TimeoutError'
+          reject(err)
+        } else {
+          resolve()
+        }
+      }
       xhr.send(formData)
     })
   },
