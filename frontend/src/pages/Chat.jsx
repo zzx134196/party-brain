@@ -270,34 +270,49 @@ export default function ChatPage() {
       return
     }
     setDiffLoading(true)
+    // 关闭弹窗，让聊天区能看到解析/对比的思考过程
+    setDiffModalOpen(false)
+    clearChat()
+    addMessage({ role: 'user', content: `请对比文件差异：\n文件1：${diffFile1.name}\n文件2：${diffFile2.name}`, created_at: new Date().toISOString() })
+    addMessage({
+      role: 'assistant',
+      content: '',
+      thinking: '正在解析并对比文件...',
+      toolEvents: [],
+      created_at: new Date().toISOString(),
+    })
+    abortRef.current = new AbortController()
     try {
-      clearChat()
-      addMessage({ role: 'user', content: `请对比文件差异：\n文件1：${diffFile1.name}\n文件2：${diffFile2.name}`, created_at: new Date().toISOString() })
-      const result = await diffApi.compareFiles(diffFile1, diffFile2)
-      if (!result || typeof result.total_diffs !== 'number') {
-        throw new Error('对比服务返回结果异常，缺少差异数据')
+      await diffApi.compareFilesStream(
+        diffFile1,
+        diffFile2,
+        _handleStreamChunk,
+        abortRef.current.signal
+      )
+      // 兜底：如果流结束但没有任何内容/结构化数据，补一句提示
+      const msgs = useChatStore.getState().messages
+      const last = msgs.length > 0 ? msgs[msgs.length - 1] : null
+      if (last && last.role === 'assistant' && !last.content && !last.data) {
+        useChatStore.getState().updateLastMessageMeta({
+          content: '文件差异分析完成，请查看下方报告。',
+          thinking: null,
+        })
       }
-      addMessage({
-        role: 'assistant',
-        content: result.conclusion || '文件差异分析完成，请查看下方报告。',
-        data: { type: 'diff_report', report: result },
-        created_at: new Date().toISOString(),
-      })
-      setDiffModalOpen(false)
     } catch (err) {
-      const detail = err.response?.data?.detail || err.message || '未知错误'
-      antMessage.error('文件对比失败：' + detail)
-      // 在对话中输出明确的失败提示语，便于现场定位问题
-      addMessage({
-        role: 'assistant',
-        content:
-          '⚠️ 文件差异对比失败\n\n' +
-          '失败原因：' + detail + '\n\n' +
-          '建议您稍后重试；若多次失败，请联系管理员检查文件解析服务或AI模型服务是否正常。',
-        data: { type: 'diff_error', error: detail },
-        created_at: new Date().toISOString(),
-      })
+      if (err?.name !== 'AbortError') {
+        const detail = err.response?.data?.detail || err.message || '未知错误'
+        antMessage.error('文件对比失败：' + detail)
+        useChatStore.getState().updateLastMessageMeta({
+          content:
+            '⚠️ 文件差异对比失败\n\n' +
+            '失败原因：' + detail + '\n\n' +
+            '建议您稍后重试；若多次失败，请联系管理员检查文件解析服务或AI模型服务是否正常。',
+          data: { type: 'diff_error', error: detail },
+          thinking: null,
+        })
+      }
     } finally {
+      abortRef.current = null
       setDiffLoading(false)
     }
   }
@@ -757,6 +772,9 @@ export default function ChatPage() {
               <Text type="secondary" style={{ fontSize: 12 }}>
                 支持 PDF、Word（.docx/.doc）、TXT 格式
               </Text>
+              <div style={{ marginTop: 6, fontSize: 12, color: '#722ed1' }}>
+                💡 点击「开始对比」后弹窗会自动关闭，解析与 AI 分析过程将在对话中展示。
+              </div>
             </div>
             <div style={{
               padding: '10px 24px 16px', borderTop: '1px solid #f0f0f0',

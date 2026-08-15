@@ -184,6 +184,87 @@ export const diffApi = {
     formData.append('file2', file2)
     return api.post('/diff/compare', formData, { timeout: 120000 })
   },
+  compareFilesStream: function (file1, file2, onChunk, signal) {
+    var token = localStorage.getItem('token')
+    var formData = new FormData()
+    formData.append('file1', file1)
+    formData.append('file2', file2)
+
+    function processSSEText(text, onChunk) {
+      var lines = text.split('\n')
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.indexOf('data: ') === 0) {
+          try {
+            var parsed = JSON.parse(line.slice(6))
+            onChunk(parsed)
+          } catch (e) { /* ignore */ }
+        }
+      }
+    }
+
+    if (typeof ReadableStream !== 'undefined' && typeof fetch !== 'undefined') {
+      return fetch('/api/diff/compare/stream', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData,
+        signal: signal,
+      }).then(function (response) {
+        if (!response.body || typeof response.body.getReader !== 'function') {
+          return response.text().then(function (text) {
+            processSSEText(text, onChunk)
+          })
+        }
+        var reader = response.body.getReader()
+        var decoder = new TextDecoder()
+        var buffer = ''
+        function read() {
+          return reader.read().then(function (result) {
+            if (result.done) return
+            buffer += decoder.decode(result.value, { stream: true })
+            var lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+            for (var i = 0; i < lines.length; i++) {
+              if (lines[i].indexOf('data: ') === 0) {
+                try {
+                  var parsed = JSON.parse(lines[i].slice(6))
+                  onChunk(parsed)
+                } catch (e) { /* ignore */ }
+              }
+            }
+            return read()
+          })
+        }
+        return read()
+      }).catch(function (e) {
+        if (e && e.name === 'AbortError') return
+        throw e
+      })
+    }
+
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest()
+      var lastIndex = 0
+      xhr.open('POST', '/api/diff/compare/stream', true)
+      xhr.setRequestHeader('Authorization', 'Bearer ' + token)
+      if (signal) {
+        signal.addEventListener('abort', function () { xhr.abort() })
+      }
+      xhr.onprogress = function () {
+        var newText = xhr.responseText.substring(lastIndex)
+        lastIndex = xhr.responseText.length
+        processSSEText(newText, onChunk)
+      }
+      xhr.onload = function () {
+        var remaining = xhr.responseText.substring(lastIndex)
+        if (remaining) processSSEText(remaining, onChunk)
+        resolve()
+      }
+      xhr.onerror = function () { reject(new Error('网络请求失败')) }
+      xhr.onabort = function () { resolve() }
+      xhr.send(formData)
+    })
+  },
 }
 
 // 系统设置
