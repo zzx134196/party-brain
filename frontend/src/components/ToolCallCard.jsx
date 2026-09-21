@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Card, Tag, Space, Typography, Collapse, Spin } from 'antd'
 import {
   BookOutlined, FileTextOutlined, SafetyCertificateOutlined,
-  DownloadOutlined, SearchOutlined,
+  DownloadOutlined, SearchOutlined, DiffOutlined,
   CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined,
 } from '@ant-design/icons'
 
@@ -15,6 +15,7 @@ const TOOL_CONFIG = {
   generate_document: { label: '正在生成文档...', done: '文档生成完成', icon: <FileTextOutlined />, color: '#1677ff' },
   export_file: { label: '正在准备文件...', done: '文件已准备就绪', icon: <DownloadOutlined />, color: '#52c41a' },
   compare_texts: { label: '正在分析文本差异...', done: '差异分析完成', icon: <SearchOutlined />, color: '#eb2f96' },
+  file_diff: { label: '正在对比文件差异...', done: '文件差异对比完成', icon: <DiffOutlined />, color: '#eb2f96' },
 }
 
 export function ToolCallingCard({ tool, args }) {

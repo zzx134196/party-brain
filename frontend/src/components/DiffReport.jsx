@@ -30,6 +30,9 @@ export default function DiffReport({ data }) {
         <Descriptions.Item label="文件2">{report.file2 || '-'}</Descriptions.Item>
         <Descriptions.Item label="差异数量">
           <Text strong style={{ color: diffs.length > 0 ? '#ff4d4f' : '#52c41a' }}>{report.total_diffs || diffs.length} 处</Text>
+          {!!report.total_diffs && !!report.shown_diffs && report.total_diffs > report.shown_diffs && (
+            <Text type="secondary" style={{ fontSize: 11, marginLeft: 6 }}>（仅展示前 {report.shown_diffs} 处）</Text>
+          )}
         </Descriptions.Item>
         <Descriptions.Item label="相似度">
           <Progress percent={similarity} size="small" style={{ width: 100 }} strokeColor={similarity > 80 ? '#52c41a' : '#faad14'} />

@@ -1,6 +1,7 @@
 """文件差异对比API"""
 import asyncio
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -20,9 +21,45 @@ from app.config import settings
 router = APIRouter(prefix="/api/diff", tags=["文件差异对比"])
 
 
+def _json_safe(obj):
+    """把 NaN/Infinity 这类非法 JSON 值替换掉。
+
+    Python 的 json.dumps 默认会输出 ``NaN`` / ``Infinity`` 字面量，这不是合法 JSON，
+    浏览器 JSON.parse 会直接抛错、导致整帧（包括里面的完整报告）被前端丢弃。
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    return obj
+
+
 def _sse(payload: dict) -> str:
-    """构造 SSE 数据帧"""
-    return f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+    """构造 SSE 数据帧（保证是合法 JSON，前端不会因解析失败而丢帧）"""
+    try:
+        body = json.dumps(
+            _json_safe(payload),
+            ensure_ascii=False,
+            default=str,
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as e:
+        logger.error(f"SSE 数据帧序列化失败: {e}")
+        body = json.dumps({
+            "type": "content",
+            "text": f"⚠️ 结果序列化失败：{e}",
+            "content": f"⚠️ 结果序列化失败：{e}",
+        }, ensure_ascii=False)
+    return f"data: {body}\n\n"
+
+
+def _done_frame(data: dict) -> str:
+    """构造结束帧：同时带 type=done 和 done=true，兼容前端两种判断方式"""
+    return _sse({"type": "done", "done": True, "data": data})
 
 
 def parse_uploaded_file(file_path: str) -> str:
@@ -209,20 +246,28 @@ async def compare_files_stream(
                 "summary": f"对比完成，发现{total}处差异，相似度{similarity}%",
                 "structured": {"type": "diff_report", "report": result},
             })
-            yield _sse({
-                "type": "done",
-                "data": {"type": "diff_report", "report": result},
-            })
+            yield _done_frame({"type": "diff_report", "report": result})
 
         except HTTPException as e:
             detail = e.detail
-            yield _sse({"type": "content", "text": f"⚠️ 文件差异对比失败：{detail}\n\n请稍后重试，或检查文件内容是否有效。"})
-            yield _sse({"type": "done", "data": {"type": "diff_error", "error": detail}})
+            logger.warning(f"文件差异对比失败: {detail}")
+            yield _sse({
+                "type": "tool_result",
+                "tool": "file_diff",
+                "success": False,
+                "summary": f"对比失败：{detail}",
+            })
+            yield _done_frame({"type": "diff_error", "error": detail})
         except Exception as e:
             logger.error(f"文件差异对比流式处理失败: {e}")
-            detail = str(e)
-            yield _sse({"type": "content", "text": f"⚠️ 文件差异对比失败：{detail}\n\n请稍后重试；若多次失败，请联系管理员检查文件解析服务或AI模型服务。"})
-            yield _sse({"type": "done", "data": {"type": "diff_error", "error": detail}})
+            detail = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+            yield _sse({
+                "type": "tool_result",
+                "tool": "file_diff",
+                "success": False,
+                "summary": f"对比失败：{detail}",
+            })
+            yield _done_frame({"type": "diff_error", "error": detail})
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 

@@ -100,16 +100,18 @@ export default function ChatPage() {
         }
       }
     } else if (data.type === 'thinking_content') {
-      useChatStore.getState().appendThinkingContent(data.text)
+      useChatStore.getState().appendThinkingContent(data.text || data.content || '')
     } else if (data.type === 'tool_calling') {
       useChatStore.getState().updateLastMessageMeta({ thinking: null })
       useChatStore.getState().appendToolEvent({ type: 'calling', tool: data.tool, args: data.args })
     } else if (data.type === 'tool_result') {
       useChatStore.getState().appendToolEvent({ type: 'result', tool: data.tool, success: data.success, summary: data.summary, structured: data.structured })
-    } else if (data.content) {
-      updateLastMessage(data.content)
+    } else if (data.content || (data.type === 'content' && data.text)) {
+      updateLastMessage(data.content || data.text)
     }
-    if (data.done) {
+    // 结束帧：兼容 {done: true} 与 {type: 'done'} 两种后端写法
+    if (data.done || data.type === 'done') {
+      useChatStore.getState().updateLastMessageMeta({ thinking: null, finished: true })
       if (data.conversation_id) setCurrentConversation(data.conversation_id)
       if (data.data || data.actions || data.tool_calls) {
         useChatStore.getState().updateLastMessageMeta({
@@ -950,7 +952,7 @@ function formatMessageContent(content) {
 function MessageBubble({ message, onAction, exporting }) {
   const isUser = message.role === 'user'
   const [thinkingExpanded, setThinkingExpanded] = React.useState(true)
-  const isStreaming = !message.content && !!(message.thinking || message.thinkingContent)
+  const isStreaming = !message.content && !message.finished && !!(message.thinking || message.thinkingContent)
   const displayContent = React.useMemo(function() {
     return formatMessageContent(message.content)
   }, [message.content])
@@ -1044,14 +1046,16 @@ function MessageBubble({ message, onAction, exporting }) {
           <div style={{ marginBottom: 8 }}>
             {(() => {
               const events = message.toolEvents
-              const resultTools = new Set(events.filter(e => e.type === 'result').map(e => e.tool))
+              const resultsByTool = {}
+              events.forEach((e) => { if (e.type === 'result') resultsByTool[e.tool] = e })
               return events.map((evt, i) => {
-                if (evt.type === 'calling' && resultTools.has(evt.tool)) {
-                  return <ToolResultCard key={i} tool={evt.tool} success={true} summary="已完成" />
+                if (evt.type === 'calling') {
+                  const res = resultsByTool[evt.tool]
+                  if (!res) return <ToolCallingCard key={i} tool={evt.tool} args={evt.args} />
+                  const ok = res.success !== false
+                  return <ToolResultCard key={i} tool={evt.tool} success={ok} summary={ok ? '已完成' : '处理失败'} />
                 }
-                return evt.type === 'calling'
-                  ? <ToolCallingCard key={i} tool={evt.tool} args={evt.args} />
-                  : <ToolResultCard key={i} tool={evt.tool} success={evt.success} summary={evt.summary} structured={evt.structured} />
+                return <ToolResultCard key={i} tool={evt.tool} success={evt.success} summary={evt.summary} structured={evt.structured} />
               })
             })()}
           </div>

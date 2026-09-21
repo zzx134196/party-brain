@@ -27,6 +27,75 @@ api.interceptors.response.use(
   }
 )
 
+// —— SSE 流式读取工具（chat / diff 共用）——
+// 按行解析 SSE 文本：只处理 "data: " 开头的行
+function processSSEText(text, onChunk) {
+  var lines = text.split('\n')
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i]
+    if (line.indexOf('data: ') === 0) {
+      try {
+        onChunk(JSON.parse(line.slice(6)))
+      } catch (e) {
+        console.warn('[SSE] 数据帧解析失败，已跳过：', line.slice(0, 200), e)
+      }
+    }
+  }
+}
+
+// 读取 fetch 的 SSE 响应流，返回 Promise
+// 1）先校验 HTTP 状态，避免把错误响应当成流式内容静默吞掉；
+// 2）跨 chunk 断帧用 buffer 拼接；
+// 3）流结束时把解码器和 buffer 里残留的最后一帧也处理掉，防止丢 done 事件。
+function streamSSEResponse(response, onChunk) {
+  if (!response.ok) {
+    return response.text().then(function (text) {
+      var detail = text
+      try {
+        var parsed = JSON.parse(text)
+        detail = (parsed && (parsed.detail || parsed.message)) || text
+      } catch (e) { /* 响应体不是 JSON，直接透传 */ }
+      var err = new Error('请求失败（HTTP ' + response.status + '）：' + String(detail).slice(0, 300))
+      err.status = response.status
+      throw err
+    })
+  }
+  if (!response.body || typeof response.body.getReader !== 'function') {
+    return response.text().then(function (text) {
+      processSSEText(text, onChunk)
+    })
+  }
+  var reader = response.body.getReader()
+  var decoder = new TextDecoder()
+  var buffer = ''
+  function consume(text) {
+    buffer += text
+    var lines = buffer.split('\n')
+    buffer = lines.pop() || ''
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].indexOf('data: ') === 0) {
+        try {
+          onChunk(JSON.parse(lines[i].slice(6)))
+        } catch (e) {
+          console.warn('[SSE] 数据帧解析失败，已跳过：', lines[i].slice(0, 200), e)
+        }
+      }
+    }
+  }
+  function read() {
+    return reader.read().then(function (result) {
+      if (result.done) {
+        consume(decoder.decode())
+        if (buffer.trim()) consume('\n')
+        return
+      }
+      consume(decoder.decode(result.value, { stream: true }))
+      return read()
+    })
+  }
+  return read()
+}
+
 // 认证
 export const authApi = {
   login: (username, password) =>
@@ -52,19 +121,6 @@ export const chatApi = {
   sendMessageStream: function (data, onChunk, signal) {
     var token = localStorage.getItem('token')
 
-    function processSSEText(text, onChunk) {
-      var lines = text.split('\n')
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i]
-        if (line.indexOf('data: ') === 0) {
-          try {
-            var parsed = JSON.parse(line.slice(6))
-            onChunk(parsed)
-          } catch (e) { /* ignore */ }
-        }
-      }
-    }
-
     if (typeof ReadableStream !== 'undefined' && typeof fetch !== 'undefined') {
       return fetch('/api/chat/send/stream', {
         method: 'POST',
@@ -75,32 +131,7 @@ export const chatApi = {
         body: JSON.stringify(data),
         signal: signal,
       }).then(function (response) {
-        if (!response.body || typeof response.body.getReader !== 'function') {
-          return response.text().then(function (text) {
-            processSSEText(text, onChunk)
-          })
-        }
-        var reader = response.body.getReader()
-        var decoder = new TextDecoder()
-        var buffer = ''
-        function read() {
-          return reader.read().then(function (result) {
-            if (result.done) return
-            buffer += decoder.decode(result.value, { stream: true })
-            var lines = buffer.split('\n')
-            buffer = lines.pop() || ''
-            for (var i = 0; i < lines.length; i++) {
-              if (lines[i].indexOf('data: ') === 0) {
-                try {
-                  var parsed = JSON.parse(lines[i].slice(6))
-                  onChunk(parsed)
-                } catch (e) { /* ignore */ }
-              }
-            }
-            return read()
-          })
-        }
-        return read()
+        return streamSSEResponse(response, onChunk)
       }).catch(function (e) {
         if (e && e.name === 'AbortError') return
         throw e
@@ -220,32 +251,24 @@ export const diffApi = {
       throw e
     }
 
-    function processSSEText(text, onChunk) {
-      var lines = text.split('\n')
-      for (var i = 0; i < lines.length; i++) {
-        var line = lines[i]
-        if (line.indexOf('data: ') === 0) {
-          try {
-            var parsed = JSON.parse(line.slice(6))
-            receivedEvent = true
-            if (parsed && parsed.done) {
-              receivedDone = true
-              if (parsed.data) {
-                receivedResultData = parsed.data
-              }
-            }
-            if (
-              parsed &&
-              parsed.type === 'tool_result' &&
-              parsed.structured &&
-              parsed.structured.type === 'diff_report'
-            ) {
-              receivedResultData = parsed.structured
-            }
-            onChunk(parsed)
-          } catch (e) { /* ignore */ }
+    // 每一帧都登记：done 事件（优先）以及 tool_result 里的完整报告
+    function handleChunk(parsed) {
+      receivedEvent = true
+      if (parsed && (parsed.done === true || parsed.type === 'done')) {
+        receivedDone = true
+        if (parsed.data) {
+          receivedResultData = parsed.data
         }
       }
+      if (
+        parsed &&
+        parsed.type === 'tool_result' &&
+        parsed.structured &&
+        parsed.structured.type === 'diff_report'
+      ) {
+        receivedResultData = parsed.structured
+      }
+      onChunk(parsed)
     }
 
     if (typeof ReadableStream !== 'undefined' && typeof fetch !== 'undefined') {
@@ -268,40 +291,15 @@ export const diffApi = {
         body: formData,
         signal: controller.signal,
       }).then(function (response) {
-        if (!response.body || typeof response.body.getReader !== 'function') {
-          return response.text().then(function (text) {
-            processSSEText(text, onChunk)
-          })
-        }
-        var reader = response.body.getReader()
-        var decoder = new TextDecoder()
-        var buffer = ''
-        function read() {
-          return reader.read().then(function (result) {
-            if (result.done) return
-            buffer += decoder.decode(result.value, { stream: true })
-            var lines = buffer.split('\n')
-            buffer = lines.pop() || ''
-            for (var i = 0; i < lines.length; i++) {
-              if (lines[i].indexOf('data: ') === 0) {
-                try {
-                  var parsed = JSON.parse(lines[i].slice(6))
-                  onChunk(parsed)
-                } catch (e) { /* ignore */ }
-              }
-            }
-            return read()
-          })
-        }
-        return read()
+        return streamSSEResponse(response, handleChunk)
       }).then(function () {
         cleanup()
         if (!receivedDone) {
           if (receivedResultData) {
             // 后端已通过 tool_result 返回完整结果，只是 done 事件可能被代理截断
-            onChunk({ type: 'done', data: receivedResultData })
+            handleChunk({ type: 'done', done: true, data: receivedResultData })
           } else {
-            throw new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志')
+            throw new Error('文件对比流式处理中断，未收到最终结果；请确认前端/后端版本已更新，并查看后端日志')
           }
         }
       }).catch(handleFetchError)
@@ -322,19 +320,19 @@ export const diffApi = {
       xhr.onprogress = function () {
         var newText = xhr.responseText.substring(lastIndex)
         lastIndex = xhr.responseText.length
-        processSSEText(newText, onChunk)
+        processSSEText(newText, handleChunk)
       }
       xhr.onload = function () {
         var remaining = xhr.responseText.substring(lastIndex)
-        if (remaining) processSSEText(remaining, onChunk)
+        if (remaining) processSSEText(remaining, handleChunk)
         cleanup()
         if (receivedDone || receivedResultData) {
           if (!receivedDone && receivedResultData) {
-            onChunk({ type: 'done', data: receivedResultData })
+            handleChunk({ type: 'done', done: true, data: receivedResultData })
           }
           resolve()
         } else {
-          reject(new Error('文件对比流式处理中断，未收到最终结果；请确认后端已更新并查看后端日志'))
+          reject(new Error('文件对比流式处理中断，未收到最终结果；请确认前端/后端版本已更新，并查看后端日志'))
         }
       }
       xhr.onerror = function () { reject(new Error('网络请求失败')) }
